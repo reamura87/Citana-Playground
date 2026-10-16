@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { hapusFileForum, unggahGambarForum } from '../lib/forum'
 
-export default function FormKirim({ userId, placeholder, tombol, onKirim }) {
-  const [isi, setIsi] = useState('')
+export default function FormKirim({
+  userId, placeholder, tombol, onKirim, awalIsi = '', fokus = false, onBatal,
+}) {
+  const [isi, setIsi] = useState(awalIsi)
   const [file, setFile] = useState(null)
   const [pratinjau, setPratinjau] = useState('')
   const [status, setStatus] = useState('')
@@ -45,6 +47,11 @@ export default function FormKirim({ userId, placeholder, tombol, onKirim }) {
     setMengirim(false)
   }
 
+  function kursorKeAkhir(e) {
+    const panjang = e.currentTarget.value.length
+    e.currentTarget.setSelectionRange(panjang, panjang)
+  }
+
   return (
     <form className="form" onSubmit={kirim}>
       <textarea
@@ -54,6 +61,8 @@ export default function FormKirim({ userId, placeholder, tombol, onKirim }) {
         placeholder={placeholder}
         onChange={(e) => setIsi(e.target.value)}
         aria-label={placeholder}
+        autoFocus={fokus}
+        onFocus={fokus ? kursorKeAkhir : undefined}
       />
       {pratinjau && (
         <div>
@@ -69,6 +78,9 @@ export default function FormKirim({ userId, placeholder, tombol, onKirim }) {
           Gambar
           <input type="file" accept="image/*" hidden onChange={pilihFile} />
         </label>
+        {onBatal && (
+          <button type="button" className="tombol" onClick={onBatal}>Batal</button>
+        )}
         <span className="redup">{isi.length}/1000</span>
         {status && <span className="redup">{status}</span>}
       </div>

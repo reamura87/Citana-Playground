@@ -34,7 +34,7 @@ export async function ambilProfilSaya(userId) {
   if (!userId) return null
   const { data, error } = await supabase
     .from('profil')
-    .select('username, peran')
+    .select('username, peran, avatar_url')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw error
@@ -48,11 +48,42 @@ export async function kirimPost({ isi, gambar_url }) {
   if (error) throw error
 }
 
-export async function kirimBalasan({ post_id, isi, gambar_url }) {
+export async function kirimBalasan({ post_id, induk_id = null, isi, gambar_url }) {
   const { error } = await supabase
     .from('forum_balasan')
-    .insert({ post_id, isi, gambar_url })
+    .insert({ post_id, induk_id, isi, gambar_url })
   if (error) throw error
+}
+
+// Peta id pengguna -> alamat foto profil
+export async function ambilAvatar(ids) {
+  const unik = [...new Set(ids)].filter(Boolean)
+  if (unik.length === 0) return {}
+  const { data, error } = await supabase
+    .from('profil_publik')
+    .select('id, avatar_url')
+    .in('id', unik)
+  if (error) throw error
+  return Object.fromEntries(data.map((d) => [d.id, d.avatar_url]))
+}
+
+// Susun balasan: tiap balasan induk diikuti semua balasan di bawahnya
+export function susunBalasan(balasan) {
+  const peta = new Map(balasan.map((b) => [b.id, b]))
+  const akar = (b) => {
+    let sekarang = b
+    while (sekarang.induk_id && peta.has(sekarang.induk_id)) {
+      sekarang = peta.get(sekarang.induk_id)
+    }
+    return sekarang.id
+  }
+  const kelompok = new Map()
+  for (const b of balasan) {
+    const kunci = akar(b)
+    if (!kelompok.has(kunci)) kelompok.set(kunci, [])
+    kelompok.get(kunci).push(b)
+  }
+  return [...kelompok.values()].flat()
 }
 
 export async function hapusPost(post) {

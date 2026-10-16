@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import FormKirim from '../components/FormKirim'
 import ItemForum from '../components/ItemForum'
 import { supabase } from '../lib/supabase'
 import { useAmbil } from '../lib/useAmbil'
 import { useSesi } from '../lib/useSesi'
 import {
+  ambilAvatar,
   ambilBalasan,
   ambilPost,
   ambilPostById,
@@ -15,6 +16,7 @@ import {
   hapusPost,
   kirimBalasan,
   kirimPost,
+  susunBalasan,
 } from '../lib/forum'
 
 // ---------- Daftar tweet ----------
@@ -31,12 +33,13 @@ function IsiForum({ userId }) {
 
   const { data, memuat, error } = useAmbil(
     async () => {
-      const [post, suara, profil] = await Promise.all([
-        ambilPost(urutan),
+      const post = await ambilPost(urutan)
+      const [suara, profil, avatar] = await Promise.all([
         ambilSuaraSaya('post'),
         ambilProfilSaya(userId),
+        ambilAvatar(post.map((p) => p.penulis_id)),
       ])
-      return { post, suara, profil }
+      return { post, suara, profil, avatar }
     },
     [urutan, versi, userId],
   )
@@ -71,10 +74,10 @@ function IsiForum({ userId }) {
           </p>
           <FormKirim
             userId={userId}
-            placeholder="Apa yang ingin kamu bagikan?"
+            placeholder="Apa yang ingin kamu bagikan? Sebut orang dengan @username"
             tombol="Kirim"
-            onKirim={async (isi) => {
-              await kirimPost(isi)
+            onKirim={async (konten) => {
+              await kirimPost(konten)
               setVersi((v) => v + 1)
             }}
           />
@@ -101,6 +104,7 @@ function IsiForum({ userId }) {
           key={p.id}
           jenis="post"
           data={p}
+          avatarUrl={data.avatar[p.penulis_id]}
           suaraAwal={data.suara[p.id] ?? 0}
           userId={userId}
           boleh={userId === p.penulis_id || admin}
@@ -124,22 +128,32 @@ export function ForumThread() {
 
 function IsiThread({ id, userId }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const hashTerakhir = useRef('')
   const [versi, setVersi] = useState(0)
   const [pesan, setPesan] = useState('')
+  const [membalasKe, setMembalasKe] = useState(null) // id balasan yang sedang dibalas
 
   const { data, memuat, error } = useAmbil(
     async () => {
-      const [post, balasan, suaraPost, suaraBalasan, profil] = await Promise.all([
-        ambilPostById(id),
-        ambilBalasan(id),
+      const [post, balasan] = await Promise.all([ambilPostById(id), ambilBalasan(id)])
+      const [suaraPost, suaraBalasan, profil, avatar] = await Promise.all([
         ambilSuaraSaya('post'),
         ambilSuaraSaya('balasan'),
         ambilProfilSaya(userId),
+        ambilAvatar([post?.penulis_id, ...balasan.map((b) => b.penulis_id)]),
       ])
-      return { post, balasan, suaraPost, suaraBalasan, profil }
+      return { post, balasan, suaraPost, suaraBalasan, profil, avatar }
     },
     [id, versi, userId],
   )
+
+  // Lompat ke balasan tertentu (dari notifikasi), sekali per tautan
+  useEffect(() => {
+    if (!data || !location.hash || hashTerakhir.current === location.hash) return
+    hashTerakhir.current = location.hash
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'center' })
+  }, [data, location.hash])
 
   async function hapusTweet(post) {
     if (!window.confirm('Hapus tweet ini beserta semua balasannya?')) return
@@ -152,7 +166,7 @@ function IsiThread({ id, userId }) {
   }
 
   async function hapusSatuBalasan(balasan) {
-    if (!window.confirm('Hapus balasan ini?')) return
+    if (!window.confirm('Hapus balasan ini beserta balasan di bawahnya?')) return
     try {
       await hapusBalasan(balasan)
       setPesan('')
@@ -182,6 +196,7 @@ function IsiThread({ id, userId }) {
       <ItemForum
         jenis="post"
         data={data.post}
+        avatarUrl={data.avatar[data.post.penulis_id]}
         suaraAwal={data.suaraPost[data.post.id] ?? 0}
         userId={userId}
         boleh={userId === data.post.penulis_id || admin}
@@ -196,8 +211,8 @@ function IsiThread({ id, userId }) {
           userId={userId}
           placeholder="Tulis balasan"
           tombol="Balas"
-          onKirim={async (isi) => {
-            await kirimBalasan({ post_id: id, ...isi })
+          onKirim={async (konten) => {
+            await kirimBalasan({ post_id: id, ...konten })
             setVersi((v) => v + 1)
           }}
         />
@@ -207,16 +222,36 @@ function IsiThread({ id, userId }) {
         </p>
       )}
 
-      {data.balasan.map((b) => (
-        <ItemForum
-          key={b.id}
-          jenis="balasan"
-          data={b}
-          suaraAwal={data.suaraBalasan[b.id] ?? 0}
-          userId={userId}
-          boleh={userId === b.penulis_id || admin}
-          onHapus={hapusSatuBalasan}
-        />
+      {susunBalasan(data.balasan).map((b) => (
+        <Fragment key={b.id}>
+          <ItemForum
+            jenis="balasan"
+            data={b}
+            avatarUrl={data.avatar[b.penulis_id]}
+            suaraAwal={data.suaraBalasan[b.id] ?? 0}
+            userId={userId}
+            boleh={userId === b.penulis_id || admin}
+            onHapus={hapusSatuBalasan}
+            onBalas={(x) => setMembalasKe(x.id)}
+          />
+          {membalasKe === b.id && (
+            <div className="forum-balas-inline">
+              <FormKirim
+                userId={userId}
+                placeholder={`Balas ${b.penulis_nama}`}
+                tombol="Balas"
+                awalIsi={`@${b.penulis_nama} `}
+                fokus
+                onBatal={() => setMembalasKe(null)}
+                onKirim={async (konten) => {
+                  await kirimBalasan({ post_id: id, induk_id: b.id, ...konten })
+                  setMembalasKe(null)
+                  setVersi((v) => v + 1)
+                }}
+              />
+            </div>
+          )}
+        </Fragment>
       ))}
     </>
   )

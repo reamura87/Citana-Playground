@@ -18,6 +18,12 @@ export function SeniRupaList() {
   return (
     <>
       <h1>Seni rupa</h1>
+      <div className="aksi">
+        
+        <Link to="/seni-rupa/baru" className="tombol utama">Buat karya</Link>
+        <Link to="/seni-rupa/saya">Karya saya</Link>
+      </div>
+
       {data.length === 0 && <p className="redup">Belum ada karya.</p>}
       {data.length > 0 && (
         <div className="aksi" role="group" aria-label="Filter kategori">

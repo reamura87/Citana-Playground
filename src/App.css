@@ -40,32 +40,10 @@ h2 { font-size: 1.15rem; margin: 32px 0 12px; }
 }
 
 .header { border-bottom: 1px solid var(--line); }
-.header-inner {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  padding-top: 14px;
-  padding-bottom: 14px;
-}
+
 .brand { font-weight: 700; text-decoration: none; }
 
-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; flex: 1; }
-nav a { color: var(--muted); text-decoration: none; }
-nav a.active { color: var(--fg); font-weight: 600; }
 
-.cari { margin-left: auto; }
-.cari input, .tema {
-  font: inherit;
-  font-size: 0.9rem;
-  color: var(--fg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-.cari input { width: 150px; background: var(--field); }
-.tema { background: none; cursor: pointer; }
-.cari input:focus-visible, .tema:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 main { flex: 1; padding-top: 12px; }
 
@@ -92,10 +70,6 @@ main { flex: 1; padding-top: 12px; }
 }
 .footer p { margin: 0; }
 
-@media (max-width: 520px) {
-  .cari { margin-left: 0; flex: 1 1 100%; }
-  .cari input { width: 100%; }
-}
 
 /* Baris gaya Netflix */
 .baris { margin-top: 28px; }
@@ -300,3 +274,209 @@ main { flex: 1; padding-top: 12px; }
   text-decoration: underline;
   cursor: pointer;
 }
+
+.toolbar select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+.toolbar select:disabled { opacity: 0.45; }
+.toolbar .alat input[type='color'] {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+/* Navbar satu baris */
+.header-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.brand { font-weight: 700; text-decoration: none; white-space: nowrap; }
+.menu {
+  display: flex;
+  flex: 1;
+  flex-wrap: nowrap;
+  gap: 18px;
+  min-width: 0;
+  padding: 4px 2px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.menu::-webkit-scrollbar { display: none; }
+.menu a { color: var(--muted); text-decoration: none; }
+.menu a.active { color: var(--fg); font-weight: 600; }
+
+.aksi-header { display: flex; align-items: center; gap: 8px; flex: none; }
+.cari {
+  display: flex;
+  align-items: center;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.cari:focus-within { outline: 2px solid var(--fg); outline-offset: 2px; }
+.cari input {
+  width: 130px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  padding: 6px 4px 6px 10px;
+  outline: none;
+}
+.ikon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ikon:hover { background: var(--field); }
+.ikon:focus-visible, .avatar-tombol:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .header-inner { gap: 10px; }
+  .brand-ekor { display: none; }
+  .cari { background: none; border: 0; }
+  .cari input { display: none; }
+}
+
+/* Foto profil dan kartu akun */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  object-fit: cover;
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.avatar-tombol {
+  display: grid;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.akun-menu { position: relative; }
+.kartu-akun {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 240px;
+  padding: 18px 16px 14px;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.akun-username { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.kartu-akun-menu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.kecil { margin: 0; font-size: 0.85rem; }
+.tombol.kecil { padding: 5px 12px; }
+
+/* Halaman pencarian */
+.kolom-cari {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--fg);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.hasil-cari { list-style: none; margin: 0; padding: 0; }
+.hasil-cari li {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hasil-cari li > div { min-width: 0; overflow-wrap: anywhere; }
+.hasil-gambar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* Forum: foto penulis dan balasan bersarang */
+.forum-kepala { display: flex; align-items: center; gap: 8px; }
+.forum-kepala strong { color: var(--fg); }
+.forum-anak { margin-left: 20px; padding-left: 12px; border-left: 2px solid var(--line); }
+.forum-balas-inline { margin: 4px 0 12px 20px; }
+.forum-item:target { background: var(--field); }
+
+/* Kartu akun dan notifikasi */
+.avatar-tombol { position: relative; }
+.titik-notif {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: #e5484d;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+}
+.kartu-akun { justify-items: stretch; width: min(320px, 90vw); text-align: left; }
+.akun-profil { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.notif { padding-top: 12px; border-top: 1px solid var(--line); }
+.notif-kepala { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
+.notif-daftar { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 6px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.notif-item:hover { background: var(--field); }
+.notif-item.baru { background: var(--field); }
+.notif-teks { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }

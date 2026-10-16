@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../lib/useSesi'
+
 export default function Footer() {
+  const { sesi, profil } = useAuth()
+
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -9,9 +13,19 @@ export default function Footer() {
           <a href="https://github.com/reamura87" target="_blank" rel="noreferrer">GitHub</a>
         </p>
         <p>
-            © {new Date().getFullYear()} Citana Playground
-            {' · '}
-            <Link to="/masuk">Masuk</Link>
+          © {new Date().getFullYear()} Citana Playground
+          {sesi === null && (
+            <>
+              {' · '}
+              <Link to="/masuk">Masuk</Link>
+            </>
+          )}
+          {sesi && (
+            <>
+              {' · '}Masuk sebagai {profil?.username ?? '…'}
+              {profil?.peran === 'admin' ? ' (admin)' : ''}
+            </>
+          )}
         </p>
       </div>
     </footer>

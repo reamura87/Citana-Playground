@@ -15,6 +15,9 @@ import AdminSeniRupaPage from './pages/admin/AdminSeniRupaPage'
 import EditorSeniRupaPage from './pages/admin/EditorSeniRupaPage'
 import { ForumList, ForumThread } from './pages/ForumPages'
 import DaftarPage from './pages/DaftarPage'
+import RuteMasuk from './components/RuteMasuk'
+import KaryaSayaPage from './pages/KaryaSayaPage'
+import CariPage from './pages/CariPage'
 
 function App() {
   const [tema, setTema] = useState(
@@ -45,12 +48,14 @@ function App() {
           <Route path="/seni-rupa/:id" element={<SeniRupaDetail />} />
           <Route path="/admin" element={<RuteAdmin><AdminPage /></RuteAdmin>} />
           <Route path="/admin/seni-rupa" element={<RuteAdmin><AdminSeniRupaPage /></RuteAdmin>} />
-          <Route path="/admin/seni-rupa/baru" element={<RuteAdmin><EditorSeniRupaPage /></RuteAdmin>} />
-          <Route path="/admin/seni-rupa/:id" element={<RuteAdmin><EditorSeniRupaPage /></RuteAdmin>} />
           <Route path="*" element={<p>Halaman tidak ditemukan.</p>} />
           <Route path="/forum" element={<ForumList />} />
           <Route path="/forum/:id" element={<ForumThread />} />
           <Route path="/daftar" element={<DaftarPage />} />
+          <Route path="/seni-rupa/saya" element={<RuteMasuk><KaryaSayaPage /></RuteMasuk>} />
+          <Route path="/seni-rupa/baru" element={<RuteMasuk><EditorSeniRupaPage /></RuteMasuk>} />
+          <Route path="/cari" element={<CariPage />} />
+          <Route path="/seni-rupa/:id/edit" element={<RuteMasuk><EditorSeniRupaPage /></RuteMasuk>} />
         </Routes>
       </main>
       <Footer />

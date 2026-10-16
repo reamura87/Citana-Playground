@@ -1,16 +1,10 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './supabase'
+import { useContext } from 'react'
+import { AuthContext } from './authContext'
 
 export function useSesi() {
-  const [sesi, setSesi] = useState(undefined)
+  return useContext(AuthContext).sesi
+}
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSesi(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_event, sesiBaru) => {
-      setSesi(sesiBaru)
-    })
-    return () => data.subscription.unsubscribe()
-  }, [])
-
-  return sesi
+export function useAuth() {
+  return useContext(AuthContext)
 }

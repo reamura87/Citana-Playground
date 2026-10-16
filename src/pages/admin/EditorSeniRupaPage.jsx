@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import KanvasLukis from '../../components/KanvasLukis'
 import { useAmbil } from '../../lib/useAmbil'
-import { unggahGambar, unggahKanvas } from '../../lib/satua'
 import {
   ambilKategoriSeniRupa,
   ambilSeniRupaById,
@@ -10,6 +9,7 @@ import {
   hapusFileGambar,
   tambahSeniRupa,
   ubahSeniRupa,
+  unggahKarya,
 } from '../../lib/seniRupa'
 
 export default function EditorSeniRupaPage() {
@@ -64,7 +64,7 @@ function FormSeniRupa({ awal }) {
       setMenyimpan(true)
       try {
         await ubahSeniRupa(awal.id, data)
-        navigate('/admin/seni-rupa')
+        navigate('/seni-rupa/saya')
       } catch (err) {
         setStatus(`Gagal menyimpan: ${err.message}`)
         setMenyimpan(false)
@@ -85,10 +85,7 @@ function FormSeniRupa({ awal }) {
     setStatus('Mengunggah…')
     let url = null
     try {
-      url =
-        mode === 'lukis'
-          ? await unggahKanvas(kanvasRef.current)
-          : await unggahGambar(file, { folder: 'seni-rupa', lebarMaks: 2000 })
+      url = await unggahKarya(mode === 'lukis' ? kanvasRef.current : file)
       await tambahSeniRupa({ ...data, gambar_url: url, asal: mode })
       navigate('/admin/seni-rupa')
     } catch (err) {
