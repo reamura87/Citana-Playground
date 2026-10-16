@@ -3,7 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
-import { SatuaList, SatuaDetail } from './pages/SatuaPages'
+import { EpisodeDetail, SatuaDetail, SatuaList, SatuaPersonalList } from './pages/SatuaPages'
 import './App.css'
 import RuteAdmin from './components/RuteAdmin'
 import MasukPage from './pages/MasukPage'
@@ -18,6 +18,7 @@ import DaftarPage from './pages/DaftarPage'
 import RuteMasuk from './components/RuteMasuk'
 import KaryaSayaPage from './pages/KaryaSayaPage'
 import CariPage from './pages/CariPage'
+import { EditorEpisode, EditorTulisan, TulisanSaya } from './pages/TulisPages'
 
 function App() {
   const [tema, setTema] = useState(
@@ -56,6 +57,16 @@ function App() {
           <Route path="/seni-rupa/baru" element={<RuteMasuk><EditorSeniRupaPage /></RuteMasuk>} />
           <Route path="/cari" element={<CariPage />} />
           <Route path="/seni-rupa/:id/edit" element={<RuteMasuk><EditorSeniRupaPage /></RuteMasuk>} />
+          <Route path="/satua" element={<SatuaList />} />
+          <Route path="/satua/personal" element={<SatuaPersonalList />} />
+          <Route path="/satua/:slug" element={<SatuaDetail />} />
+          <Route path="/satua/:slug/episode/:nomor" element={<EpisodeDetail />} />
+
+          <Route path="/tulis" element={<RuteMasuk><EditorTulisan /></RuteMasuk>} />
+          <Route path="/tulis/saya" element={<RuteMasuk><TulisanSaya /></RuteMasuk>} />
+          <Route path="/tulis/:id" element={<RuteMasuk><EditorTulisan /></RuteMasuk>} />
+          <Route path="/tulis/:id/episode/baru" element={<RuteMasuk><EditorEpisode /></RuteMasuk>} />
+          <Route path="/tulis/:id/episode/:episodeId" element={<RuteMasuk><EditorEpisode /></RuteMasuk>} />
         </Routes>
       </main>
       <Footer />

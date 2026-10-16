@@ -1,8 +1,10 @@
 import KartuSatua from './KartuSatua'
+import KartuSatuaPersonal from './KartuSatuaPersonal'
 import KartuSeniRupa from './KartuSeniRupa'
 
 const kartuPerJenis = {
   satua: KartuSatua,
+  satuaPersonal: KartuSatuaPersonal,
   seniRupa: KartuSeniRupa,
   // nanti: tari: KartuTari, tempat: KartuTempat
 }

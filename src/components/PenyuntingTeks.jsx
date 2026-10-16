@@ -5,7 +5,7 @@ import Image from '@tiptap/extension-image'
 import TextAlign from '@tiptap/extension-text-align'
 import { unggahGambar } from '../lib/satua'
 
-export default function PenyuntingTeks({ nilaiAwal, onUbah }) {
+export default function PenyuntingTeks({ nilaiAwal, onUbah, unggah = unggahGambar }) {
   const inputGambar = useRef(null)
   const [pesan, setPesan] = useState('')
 
@@ -36,7 +36,7 @@ export default function PenyuntingTeks({ nilaiAwal, onUbah }) {
     if (!file) return
     setPesan('Mengunggah gambar…')
     try {
-      const url = await unggahGambar(file)
+      const url = await unggah(file)
       editor.chain().focus().setImage({ src: url }).run()
       setPesan('')
     } catch (err) {

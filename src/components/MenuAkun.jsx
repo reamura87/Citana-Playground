@@ -188,6 +188,7 @@ function AkunMasuk({ userId }) {
 
           <div className="kartu-akun-menu">
             <Link to="/seni-rupa/saya" onClick={() => setBuka(false)}>Karya saya</Link>
+            <Link to="/tulis/saya" onClick={() => setBuka(false)}>Tulisan saya</Link>
             <button type="button" className="tombol kecil" onClick={keluar}>Keluar</button>
           </div>
         </div>

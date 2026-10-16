@@ -7,6 +7,7 @@ export async function ambilSatua() {
     .select('*')
     .eq('terbit', true)
     .order('diperbarui_pada', { ascending: false })
+    .eq('jenis', 'resmi')
   if (error) throw error
   return data
 }
@@ -28,6 +29,7 @@ export async function ambilSemuaUntukAdmin() {
     .from('satua')
     .select('*')
     .order('diperbarui_pada', { ascending: false })
+    .eq('jenis', 'resmi')
   if (error) throw error
   return data
 }

@@ -480,3 +480,24 @@ main { flex: 1; padding-top: 12px; }
 .notif-item:hover { background: var(--field); }
 .notif-item.baru { background: var(--field); }
 .notif-teks { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+
+.tombol[aria-current='page'] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.aksi + .aksi { margin-top: 12px; }
+
+.penulis-baris {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.upvote { display: flex; align-items: center; gap: 10px; margin: 24px 0 8px; }
+.episode-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
+
+.komentar { margin-top: 24px; }
+.komentar-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.komentar-isi { flex: 1; min-width: 0; }
+.komentar-isi p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.komentar-isi .forum-kepala { margin: 0; }
