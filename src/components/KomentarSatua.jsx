@@ -42,7 +42,7 @@ export default function KomentarSatua({ jenis, id, userId, pemilikId, admin }) {
   async function hapus(k) {
     if (!window.confirm('Hapus komentar ini?')) return
     try {
-      await hapusKomentar(k.id)
+      await hapusKomentar(jenis, k.id)
       setStatus('')
       setVersi((v) => v + 1)
     } catch (err) {

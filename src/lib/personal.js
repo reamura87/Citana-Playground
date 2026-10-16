@@ -125,9 +125,11 @@ export async function hapusEpisode(id) {
 }
 
 // ---------- Upvote dan komentar ----------
+// Satu pola untuk satua personal, episode, dan karya seni rupa
 const TARGET = {
-  satua: { tabel: 'suara_satua', kolom: 'satua_id' },
-  episode: { tabel: 'suara_episode', kolom: 'episode_id' },
+  satua: { tabel: 'suara_satua', kolom: 'satua_id', komentar: 'komentar_satua' },
+  episode: { tabel: 'suara_episode', kolom: 'episode_id', komentar: 'komentar_satua' },
+  karya: { tabel: 'suara_seni_rupa', kolom: 'karya_id', komentar: 'komentar_seni_rupa' },
 }
 
 export async function sudahUpvote(jenis, id) {
@@ -157,25 +159,25 @@ export async function aturUpvote(jenis, id, userId, aktif) {
 }
 
 export async function ambilKomentar(jenis, id) {
+  const { komentar, kolom } = TARGET[jenis]
   const { data, error } = await supabase
-    .from('komentar_satua')
+    .from(komentar)
     .select('*')
-    .eq(TARGET[jenis].kolom, id)
+    .eq(kolom, id)
     .order('dibuat_pada', { ascending: true })
   if (error) throw error
   return data
 }
 
 export async function kirimKomentar(jenis, id, isi) {
-  const { error } = await supabase
-    .from('komentar_satua')
-    .insert({ [TARGET[jenis].kolom]: id, isi })
+  const { komentar, kolom } = TARGET[jenis]
+  const { error } = await supabase.from(komentar).insert({ [kolom]: id, isi })
   if (error) throw error
 }
 
-export async function hapusKomentar(id) {
+export async function hapusKomentar(jenis, id) {
   const { data, error } = await supabase
-    .from('komentar_satua')
+    .from(TARGET[jenis].komentar)
     .delete()
     .eq('id', id)
     .select('id')

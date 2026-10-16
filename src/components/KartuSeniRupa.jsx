@@ -9,6 +9,7 @@ export default function KartuSeniRupa({ data }) {
       <p className="kartu-jenis">Seni rupa · {data.kategori}</p>
       <h3 className="kartu-judul">{data.nama}</h3>
       <p className="kartu-meta">oleh {data.pembuat_nama}</p>
+      <p className="kartu-meta">▲ {data.skor ?? 0} · {data.jumlah_komentar ?? 0} komentar</p>
     </Link>
   )
 }
