@@ -23,6 +23,9 @@ async function masuk(e) {
   return (
     <>
       <h1>Masuk</h1>
+      <p>
+        Ada fitur login di website ini karena aku ndak percaya sama khe. bercanda
+      </p>
       <form className="form" onSubmit={masuk}>
         <label>
           Email

@@ -43,6 +43,9 @@ export default function DaftarPage() {
   return (
     <>
       <h1>Daftar</h1>
+      <p>
+        pakai password yang beda dari password emailmu. kalau ndak entar dicolong bagas
+      </p>
       <form className="form" onSubmit={daftar}>
         <label>
           Username
