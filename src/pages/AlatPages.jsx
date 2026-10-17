@@ -1,29 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BATAS, hapusLatar, periksaFile, siapkanGambar } from '../lib/hapusLatar'
+import KartuAlat from '../components/KartuAlat'
+import { DAFTAR_ALAT } from '../lib/alat'
 
-const DAFTAR_ALAT = [
-  {
-    path: '/alat/hapus-latar',
-    nama: 'Hapus latar belakang',
-    info: 'Hapus latar gambar langsung di browser. Gambar tidak diunggah ke server.',
-  },
-]
+
 
 export function AlatList() {
   return (
     <>
       <h1>Alat</h1>
-      <ul className="daftar">
+      <p className="redup">Semua alat berjalan di browsermu. File yang kamu pakai tidak dikirim ke server.</p>
+      <div className="grid-alat">
         {DAFTAR_ALAT.map((a) => (
-          <li key={a.path}>
-            <span>
-              <Link to={a.path}>{a.nama}</Link>
-              <small className="redup"> · {a.info}</small>
-            </span>
-          </li>
+          <KartuAlat key={a.path} alat={a} />
         ))}
-      </ul>
+      </div>
     </>
   )
 }

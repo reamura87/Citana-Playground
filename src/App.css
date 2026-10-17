@@ -533,3 +533,33 @@ main { flex: 1; padding-top: 12px; }
   background-size: 16px 16px;
   background-position: 0 0, 8px 8px;
 }
+
+/* Kartu alat (beranda dan halaman /alat) */
+.grid-alat { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.kartu-alat {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.kartu-alat:hover, .kartu-alat:focus-visible { background: var(--field); }
+.kartu-alat strong { font-size: 1rem; }
+.kartu-alat span { font-size: 0.9rem; }
+
+/* Cuplikan hasil PDF ke Word */
+.cuplikan {
+  max-height: 220px;
+  margin: 0 0 16px;
+  padding: 12px;
+  overflow: auto;
+  font: inherit;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}

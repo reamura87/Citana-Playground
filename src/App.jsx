@@ -20,6 +20,7 @@ import KaryaSayaPage from './pages/KaryaSayaPage'
 import CariPage from './pages/CariPage'
 import { EditorEpisode, EditorTulisan, TulisanSaya } from './pages/TulisPages'
 import { AlatList, HapusLatarPage } from './pages/AlatPages'
+import PdfKeWordPage from './pages/PdfKeWordPage'
 
 function App() {
   const [tema, setTema] = useState(
@@ -70,6 +71,7 @@ function App() {
           <Route path="/tulis/:id/episode/:episodeId" element={<RuteMasuk><EditorEpisode /></RuteMasuk>} />
           <Route path="/alat" element={<AlatList />} />
           <Route path="/alat/hapus-latar" element={<HapusLatarPage />} />
+          <Route path="/alat/pdf-ke-word" element={<PdfKeWordPage />} />
         </Routes>
       </main>
       <Footer />
