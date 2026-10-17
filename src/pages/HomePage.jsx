@@ -12,7 +12,7 @@ export default function HomePage() {
 
   return (
     <>
-      <p className="redup">ramein chatnya.</p>
+      <p className="redup">semoga gak di ban internet positif lagi.</p>
 
       <section>
         <h2>Alat</h2>
