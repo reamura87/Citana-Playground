@@ -166,8 +166,8 @@ export default function PassfotoPage() {
       <p><Link to="/alat">← Alat</Link></p>
       <h1>Pas foto otomatis</h1>
       <p className="redup">
-        Foto diproses di perangkatmu. Tidak dikirim ke server dan tidak disimpan di mana pun.
-        Setelah halaman ditutup, semuanya hilang.
+        Ketika khe ingin membuat pasfoto buat surat di Simak, tapi khe gabisa buat pasfoto,
+        aduh kasian khe. Makanya khe pakai alat ini aja awokaowkawok
       </p>
 
       {tahap === 'pilih' && (
