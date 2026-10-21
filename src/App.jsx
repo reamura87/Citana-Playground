@@ -21,6 +21,7 @@ import CariPage from './pages/CariPage'
 import { EditorEpisode, EditorTulisan, TulisanSaya } from './pages/TulisPages'
 import { AlatList, HapusLatarPage } from './pages/AlatPages'
 import PdfKeWordPage from './pages/PdfKeWordPage'
+import PassfotoPage from './pages/PasfotoPage'
 
 function App() {
   const [tema, setTema] = useState(
@@ -72,6 +73,7 @@ function App() {
           <Route path="/alat" element={<AlatList />} />
           <Route path="/alat/hapus-latar" element={<HapusLatarPage />} />
           <Route path="/alat/pdf-ke-word" element={<PdfKeWordPage />} />
+          <Route path="/alat/pas-foto" element={<PassfotoPage />} />
         </Routes>
       </main>
       <Footer />

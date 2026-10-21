@@ -9,4 +9,10 @@ export const DAFTAR_ALAT = [
     nama: 'PDF ke Word',
     info: 'Ubah teks dalam PDF menjadi dokumen Word (.docx). Diproses di browsermu, tidak diunggah.',
   },
+
+    {
+    path: '/alat/pas-foto',
+    nama: 'Pas foto otomatis',
+    info: 'Hapus latar, pilih ukuran dan warna, lalu unduh pas foto atau lembar cetak. Diproses di browsermu.',
+  },
 ]
