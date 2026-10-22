@@ -1,3 +1,4 @@
+import GameHighlight from '../components/GameHighlight'
 import KartuAlat from '../components/KartuAlat'
 import KartuKonten from '../components/KartuKonten'
 import { DAFTAR_ALAT } from '../lib/alat'
@@ -12,11 +13,13 @@ export default function HomePage() {
 
   return (
     <>
-      <p className="redup">semoga gak di ban internet positif lagi.</p>
+      <GameHighlight />
+
+      <p className="redup">Arsip ide gabut: cerita, gambar, 3D, dan kode.</p>
 
       <section>
         <h2>Alat</h2>
-        <p className="redup">biar website awk berguna</p>
+        <p className="redup">Alat gratis tanpa daftar. Prosesnya di browsermu, file tidak dikirim ke server.</p>
         <div className="grid-alat">
           {DAFTAR_ALAT.map((a) => (
             <KartuAlat key={a.path} alat={a} />

@@ -1,38 +1,108 @@
-export const UKURAN_DUNIA = { lebar: 1280, tinggi: 960 }
-export const SKALA = 2 // objek dunia digambar 2x
+export const DOMAIN_BOS = { x: 1360, y: 340 }
 
 export const POSISI_PETAK = Array.from({ length: 12 }, (_, i) => ({
-  x: 560 + (i % 4) * 84,
-  y: 230 + Math.floor(i / 4) * 84,
+  x: 560 + (i % 4) * 64,
+  y: 240 + Math.floor(i / 4) * 64,
 }))
+
+// Rute patroli (loop tertutup). Indeksnya dipakai kolom `rute` di tabel game_spawn.
+const RUTE = [
+  [[140, 360], [480, 360], [480, 560], [140, 560]],
+  [[140, 720], [480, 720], [480, 960], [140, 960]],
+  [[260, 560], [500, 680], [260, 800]],
+  [[1100, 700], [1480, 700], [1480, 1000], [1100, 1000]],
+  [[1200, 780], [1420, 860], [1200, 960]],
+  [[540, 280], [640, 280], [640, 500], [540, 500]],
+  [[620, 400], [980, 400], [980, 620], [620, 620]],
+  [[1080, 470], [1300, 470], [1300, 640], [1080, 640]],
+]
+
+const PAUSE_DETIK = 4
+const cache = new Map()
+
+function bangunRute(rute, kecepatan) {
+  const kunci = `${rute}:${kecepatan}`
+  if (cache.has(kunci)) return cache.get(kunci)
+  const titik = RUTE[rute] ?? RUTE[0]
+  const segmen = []
+  let total = 0
+  for (let i = 0; i < titik.length; i += 1) {
+    const a = titik[i]
+    const b = titik[(i + 1) % titik.length]
+    const durasi = Math.hypot(b[0] - a[0], b[1] - a[1]) / kecepatan
+    segmen.push({ a, b, durasi })
+    total += durasi + PAUSE_DETIK
+  }
+  const hasil = { segmen, total }
+  cache.set(kunci, hasil)
+  return hasil
+}
+
+// Posisi musuh pada waktu tertentu. gerak = true saat berjalan, false saat berdiam (idle).
+export function posisiPatroli(rute, fase, waktuMs, kecepatan) {
+  const { segmen, total } = bangunRute(rute, kecepatan)
+  let t = (waktuMs / 1000 + fase * total) % total
+  for (const s of segmen) {
+    const dx = s.b[0] - s.a[0]
+    if (t < s.durasi) {
+      const k = t / s.durasi
+      return { x: s.a[0] + dx * k, y: s.a[1] + (s.b[1] - s.a[1]) * k, gerak: true, dx }
+    }
+    t -= s.durasi
+    if (t < PAUSE_DETIK) return { x: s.b[0], y: s.b[1], gerak: false, dx }
+    t -= PAUSE_DETIK
+  }
+  const akhir = segmen[segmen.length - 1]
+  return { x: akhir.b[0], y: akhir.b[1], gerak: false, dx: 0 }
+}
 
 export const PETA = {
   server: {
-    nama: 'Dunia bersama',
-    mulai: { x: 640, y: 520 },
-    gerbang: { x: 160, y: 830, ke: 'pribadi', label: 'Ke rumahku' },
-    toko: { x: 640, y: 800 },
-    papan: { x: 730, y: 470 },
-    musuh: [
-      { id: 'slime', nama: 'Slime', x: 930, y: 300 },
-      { id: 'goblin', nama: 'Goblin', x: 1050, y: 370 },
-      { id: 'serigala', nama: 'Serigala', x: 960, y: 450 },
+    nama: 'Kerajaan (dunia bersama)',
+    ukuran: { lebar: 1600, tinggi: 1200 },
+    mulai: { x: 800, y: 960 },
+    gerbang: { x: 470, y: 1000, ke: 'pribadi', label: 'Ke rumahku' },
+    toko: { x: 740, y: 880 },
+    papan: { x: 890, y: 940 },
+    sumur: { x: 800, y: 1010 },
+    kastil: { x: 800, y: 300 },
+    gua: { x: 1360, y: 300 },
+    pondok: [
+      { x: 560, y: 900, v: 0 },
+      { x: 1040, y: 910, v: 1 },
+      { x: 700, y: 1130, v: 0 },
+      { x: 910, y: 1130, v: 1 },
     ],
-    zonaTaman: [100, 100, 420, 280],
+    obor: [{ x: 1280, y: 330 }, { x: 1440, y: 330 }, { x: 1360, y: 430 }],
+    label: [
+      { x: 800, y: 1075, teks: 'Desa Citana' },
+      { x: 800, y: 110, teks: 'Gedung Kesenian Bung Karno' },
+      { x: 300, y: 300, teks: 'Berangbang' },
+      { x: 800, y: 370, teks: 'Jalan Hasanudin' },
+      { x: 1280, y: 680, teks: 'Tegal Badeng' },
+      { x: 1360, y: 90, teks: 'Pengambengan' },
+    ],
+    hutan: [80, 280, 460, 720],
+    padang: [1060, 640, 440, 440],
+    reruntuhan: [560, 380, 460, 250],
     larangan: [
-      [560, 0, 160, 900],
-      [0, 440, 1280, 120],
-      [800, 130, 400, 400],
-      [520, 640, 240, 280],
-      [100, 760, 120, 120],
-      [180, 200, 140, 80],
+      [760, 300, 80, 560],
+      [0, 570, 1600, 60],
+      [600, 800, 400, 320],
+      [640, 120, 320, 200],
+      [1160, 60, 400, 400],
+      [1060, 440, 260, 220],
+      [830, 350, 540, 260],
+      [430, 960, 120, 80],
     ],
   },
   pribadi: {
     nama: 'Rumah pribadi',
+    ukuran: { lebar: 1280, tinggi: 960 },
     mulai: { x: 420, y: 560 },
     rumah: { x: 260, y: 380 },
-    gerbang: { x: 640, y: 910, ke: 'server', label: 'Ke dunia bersama' },
+    sumur: { x: 420, y: 330 },
+    gerbang: { x: 640, y: 910, ke: 'server', label: 'Ke kerajaan' },
     larangan: [
       [150, 200, 230, 210],
       [500, 160, 380, 310],
@@ -54,14 +124,8 @@ function acak(seed) {
   }
 }
 
-// Titik acak yang tidak masuk area terlarang dan tidak saling berdempetan
-export function sebarDekorasi(
-  seed,
-  jumlah,
-  larangan,
-  zona = [0, 0, UKURAN_DUNIA.lebar, UKURAN_DUNIA.tinggi],
-  jarakMin = 70,
-) {
+// Titik acak (tetap, berdasarkan seed) yang tidak masuk area terlarang dan tidak berdempetan
+export function sebarDekorasi(seed, jumlah, larangan, zona, jarakMin = 70) {
   const rnd = acak(seed)
   const hasil = []
   let percobaan = 0
@@ -78,9 +142,9 @@ export function sebarDekorasi(
   return hasil
 }
 
-// Gambar tanah satu peta (dibuat sekali lalu dipakai ulang sebagai tekstur)
+// Tanah setiap peta (dibuat sekali lalu dipakai ulang sebagai tekstur)
 export function gambarTanah(peta) {
-  const { lebar, tinggi } = UKURAN_DUNIA
+  const { lebar, tinggi } = PETA[peta].ukuran
   const kanvas = document.createElement('canvas')
   kanvas.width = lebar
   kanvas.height = tinggi
@@ -89,54 +153,71 @@ export function gambarTanah(peta) {
 
   ctx.fillStyle = '#5a9e4b'
   ctx.fillRect(0, 0, lebar, tinggi)
-  for (let i = 0; i < 3000; i += 1) {
+  for (let i = 0; i < 4200; i += 1) {
     ctx.fillStyle = rnd() > 0.5 ? '#63a954' : '#4f9042'
     ctx.fillRect(Math.floor((rnd() * lebar) / 4) * 4, Math.floor((rnd() * tinggi) / 4) * 4, 4, 4)
   }
 
-  const jalan = (x, y, l, t) => {
-    ctx.fillStyle = '#c9b383'
-    ctx.fillRect(x, y, l, t)
-    ctx.fillStyle = '#b89f6c'
-    for (let i = 0; i < (l * t) / 500; i += 1) ctx.fillRect(x + rnd() * l, y + rnd() * t, 4, 4)
-  }
-  const lingkaran = (x, y, r, warna) => {
-    ctx.fillStyle = warna
+  const jalur = (x1, y1, x2, y2, tebal) => {
+    ctx.strokeStyle = '#b8a07a'
+    ctx.lineWidth = tebal
+    ctx.lineCap = 'round'
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
   }
 
   if (peta === 'server') {
-    jalan(560, 0, 160, 900)
-    jalan(0, 440, 1280, 120)
-    lingkaran(640, 500, 110, '#8f939b')
-    lingkaran(640, 500, 94, '#b4b8c0')
-    lingkaran(640, 500, 20, '#8f939b')
-    // taman
-    ctx.fillStyle = '#74b862'
-    ctx.fillRect(100, 100, 420, 280)
+    ctx.fillStyle = 'rgba(30,80,40,0.35)'
+    ctx.fillRect(80, 280, 460, 720)
+
+    for (let i = 0; i < 19; i += 1) {
+      ctx.fillStyle = i % 2 === 0 ? '#b59a4a' : '#a58a3c'
+      ctx.fillRect(1060, 640 + i * 24, 440, 16)
+    }
+
+    ctx.fillStyle = '#9b8560'
+    ctx.fillRect(1060, 450, 260, 200)
+
+    ctx.fillStyle = '#7f8b79'
+    for (let i = 0; i < 40; i += 1) ctx.fillRect(560 + rnd() * 440, 380 + rnd() * 240, 28, 20)
+
+    ctx.fillStyle = '#6b6560'
+    ctx.fillRect(1160, 60, 400, 400)
+    for (let i = 0; i < 320; i += 1) {
+      ctx.fillStyle = rnd() > 0.5 ? '#7b756f' : '#5a554f'
+      ctx.fillRect(1160 + rnd() * 392, 60 + rnd() * 392, 8, 8)
+    }
+
+    jalur(800, 300, 800, 840, 70)
+    jalur(0, 600, 1600, 600, 60)
+    jalur(830, 600, 1000, 520, 50)
+    jalur(1000, 520, 1250, 420, 50)
+    jalur(1250, 420, 1340, 350, 50)
+    jalur(470, 1000, 600, 1000, 50)
+
+    ctx.fillStyle = '#9a9ea6'
+    ctx.fillRect(600, 800, 400, 300)
+    ctx.fillStyle = '#8a8e96'
+    for (let x = 600; x < 1000; x += 25) ctx.fillRect(x, 800, 2, 300)
+    for (let y = 800; y < 1100; y += 25) ctx.fillRect(600, y, 400, 2)
+    ctx.fillStyle = '#9a9ea6'
+    ctx.fillRect(720, 300, 160, 44)
+
     ctx.fillStyle = '#4aa3d9'
     ctx.beginPath()
-    ctx.ellipse(250, 240, 70, 38, 0, 0, Math.PI * 2)
+    ctx.ellipse(250, 1090, 80, 40, 0, 0, Math.PI * 2)
     ctx.fill()
-    jalan(100, 330, 420, 28)
-    // arena
-    lingkaran(1000, 330, 204, '#a88a52')
-    lingkaran(1000, 330, 196, '#e3cf9a')
-    lingkaran(1000, 330, 120, '#d9c389')
-    // plaza toko
-    ctx.fillStyle = '#b4b8c0'
-    ctx.fillRect(540, 660, 200, 240)
   } else {
-    jalan(230, 380, 60, 130)
-    jalan(230, 480, 470, 60)
-    jalan(610, 480, 60, 420)
+    jalur(260, 400, 260, 510, 56)
+    jalur(260, 510, 640, 510, 56)
+    jalur(640, 510, 640, 900, 56)
     ctx.fillStyle = '#6ca95b'
-    ctx.fillRect(520, 180, 340, 270)
+    ctx.fillRect(516, 196, 280, 216)
     ctx.strokeStyle = '#7a4a1e'
     ctx.lineWidth = 6
-    ctx.strokeRect(520, 180, 340, 270)
+    ctx.strokeRect(516, 196, 280, 216)
   }
   return kanvas
 }

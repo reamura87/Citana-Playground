@@ -671,3 +671,44 @@ main { flex: 1; padding-top: 12px; }
 .dpad-kanan { grid-column: 3; grid-row: 2; }
 .dpad-bawah { grid-column: 2; grid-row: 3; }
 .game-aksi { width: 84px; height: 84px; border-radius: 50%; font-weight: 600; }
+
+/* Bos dan tombol serang */
+.game-bos { margin-bottom: 8px; }
+.game-bos-judul { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.9rem; }
+.game-bos .game-xp { width: 100%; height: 8px; }
+.game-tombol-kanan { display: flex; gap: 10px; }
+
+/* Sorotan game di beranda */
+.game-sorotan {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  align-items: center;
+  margin: 8px 0 32px;
+  padding: 24px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.game-sorotan h2 { margin: 6px 0 8px; font-size: 1.8rem; }
+.game-sorotan ul { margin: 12px 0; padding-left: 1.2em; color: var(--muted); }
+.game-sorotan-label {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 12px;
+  font-size: 0.8rem;
+  color: var(--bg);
+  background: var(--fg);
+  border-radius: 999px;
+}
+.game-sorotan-gambar {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  image-rendering: pixelated;
+}
+@media (max-width: 720px) {
+  .game-sorotan { grid-template-columns: 1fr; padding: 16px; }
+  .game-sorotan-gambar { order: -1; }
+}

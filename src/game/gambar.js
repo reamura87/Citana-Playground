@@ -1,114 +1,257 @@
 // Semua grafis game digambar lewat kode (Canvas 2D). Tidak ada file gambar.
-const S = 2 // satu piksel logis = 2 piksel layar
+const S = 2 // satu piksel logis = 2 piksel layar (kecuali ditentukan lain)
 
-function buat(lebar, tinggi) {
+function buat(lebar, tinggi, skala = S) {
   const kanvas = document.createElement('canvas')
-  kanvas.width = lebar * S
-  kanvas.height = tinggi * S
+  kanvas.width = lebar * skala
+  kanvas.height = tinggi * skala
   const ctx = kanvas.getContext('2d')
   const px = (warna, x, y, l = 1, t = 1) => {
     ctx.fillStyle = warna
-    ctx.fillRect(x * S, y * S, l * S, t * S)
+    ctx.fillRect(x * skala, y * skala, l * skala, t * skala)
   }
   return { kanvas, px }
 }
 
-export const WARNA_BAJU = ['#d9534f', '#3b82c4', '#4a9d5b', '#e0a030', '#8e5bb5', '#2fa4a4']
+export const WARNA_BAJU = ['#c0392b', '#2e5fa3', '#3f8f4e', '#c28a1c', '#7d4fa8', '#2a8a8a']
 export const WARNA_RAMBUT = ['#3b2a1a', '#1c1c1c', '#7a4a1e', '#c9a227']
 export const JENIS_TANAMAN = ['wortel', 'tomat', 'labu']
 
-// Warna karakter ditentukan dari nama, supaya tiap pemain tampak berbeda
+// Warna tunik ditentukan dari nama, supaya tiap pemain tampak berbeda
 export function warnaDariNama(nama = '') {
   let h = 0
   for (const c of nama) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return { baju: WARNA_BAJU[h % WARNA_BAJU.length], rambut: WARNA_RAMBUT[(h >> 3) % WARNA_RAMBUT.length] }
 }
 
-export function gambarPemain(arah, langkah, baju, rambut) {
+// ---------- Pemain: ksatria medieval ----------
+const KULIT = '#f1c27d'
+const BAJA = '#aab2bb'
+const BAJA_GELAP = '#7f8791'
+const EMAS = '#d4af37'
+const BILAH = '#d8dee4'
+
+function pedangSerang(px, arah, t, baju) {
+  if (arah === 'bawah') {
+    if (t === 0) {
+      px(baju, 12, 5, 1, 3); px(KULIT, 12, 4); px(BILAH, 12, 0, 1, 4); px(EMAS, 11, 4, 3, 1)
+    } else if (t === 1) {
+      px(baju, 11, 8, 2, 1); px(KULIT, 13, 8); px(EMAS, 13, 7, 1, 3); px(BILAH, 5, 9, 8, 1)
+    } else {
+      px(baju, 12, 9, 1, 2); px(KULIT, 12, 11); px(EMAS, 11, 11, 3, 1); px(BILAH, 12, 12, 1, 4)
+    }
+  } else if (arah === 'atas') {
+    if (t === 0) {
+      px(baju, 11, 6, 1, 2); px(KULIT, 11, 5); px(BILAH, 11, 0, 1, 5); px(EMAS, 10, 5, 3, 1)
+    } else if (t === 1) {
+      px(baju, 10, 6, 2, 1); px(KULIT, 12, 6); px(EMAS, 12, 5, 1, 3); px(BILAH, 4, 4, 8, 1)
+    } else {
+      px(baju, 3, 6, 1, 2); px(KULIT, 3, 5); px(BILAH, 3, 0, 1, 5); px(EMAS, 2, 5, 3, 1)
+    }
+  } else if (t === 0) {
+    px(baju, 10, 5, 1, 3); px(KULIT, 10, 4); px(BILAH, 11, 0, 1, 5); px(EMAS, 10, 5, 3, 1)
+  } else if (t === 1) {
+    px(baju, 9, 8, 2, 1); px(KULIT, 11, 8); px(EMAS, 11, 7, 1, 3); px(BILAH, 12, 8, 4, 1)
+  } else {
+    px(baju, 10, 9, 1, 2); px(KULIT, 10, 11); px(EMAS, 9, 11, 3, 1); px(BILAH, 13, 11, 1, 4)
+  }
+}
+
+// langkah: 0 berdiri, 1 dan 2 jalan. serang: null atau tahap tebasan 0..2
+export function gambarPemain(arah, langkah, baju, serang = null) {
   const { kanvas, px } = buat(16, 16)
-  const kulit = '#f1c27d'
-  const celana = '#3a3f5c'
-  const angkatKiri = langkah === 1 ? 1 : 0
-  const angkatKanan = langkah === 2 ? 1 : 0
+  const hose = '#5a4636'
+  const sepatu = '#3a2616'
+  const sabuk = '#5a3b1e'
+  const menyerang = serang !== null
+  const angkatKiri = !menyerang && langkah === 1 ? 1 : 0
+  const angkatKanan = !menyerang && langkah === 2 ? 1 : 0
+  const kaki = (x, a) => {
+    px(hose, x, 11, 2, 2 - a)
+    px(sepatu, x, 13 - a, 2, 1)
+  }
+
   px('rgba(0,0,0,0.25)', 4, 14, 8, 2)
 
   if (arah === 'samping') {
-    px(celana, 6, 11, 2, 3 - angkatKiri)
-    px(celana, 8, 11, 2, 3 - angkatKanan)
+    kaki(6, angkatKiri)
+    kaki(8, angkatKanan)
     px(baju, 5, 7, 6, 4)
-    px(baju, 7, 8, 2, 3)
-    px(kulit, 5, 1, 6, 6)
-    px(rambut, 5, 1, 6, 2)
-    px(rambut, 5, 3, 2, 3)
+    px(sabuk, 5, 9, 6, 1)
+    px(EMAS, 7, 9)
+    px(BAJA, 5, 7, 2, 1)
+    px(KULIT, 7, 2, 4, 5)
+    px(BAJA, 5, 1, 6, 3)
+    px(BAJA_GELAP, 5, 3, 2, 4)
     px('#222222', 9, 4)
-    px(kulit, 11, 4)
+    px('#8a5a2b', 6, 8, 3, 4)
+    px(BAJA, 6, 8, 3, 1)
+    px(EMAS, 7, 9, 1, 2)
+    if (!menyerang) {
+      px('#4a4a52', 5, 10, 1, 3)
+      px(EMAS, 5, 9)
+    }
   } else {
-    px(celana, 5, 11, 2, 3 - angkatKiri)
-    px(celana, 9, 11, 2, 3 - angkatKanan)
+    kaki(5, angkatKiri)
+    kaki(9, angkatKanan)
     px(baju, 4, 7, 8, 4)
-    px(baju, 3, 8, 1, 3)
-    px(baju, 12, 8, 1, 3)
-    px(kulit, 3, 11)
-    px(kulit, 12, 11)
-    px(kulit, 5, 1, 6, 6)
+    px(sabuk, 4, 9, 8, 1)
+    px(EMAS, 7, 9, 2, 1)
+    px(BAJA, 3, 7, 2, 2)
+    px(BAJA, 11, 7, 2, 2)
+    px(baju, 3, 9, 1, 2)
+    px(KULIT, 3, 11)
     if (arah === 'atas') {
-      px(rambut, 5, 1, 6, 5)
+      px(BAJA, 5, 1, 6, 5)
+      px(BAJA_GELAP, 5, 5, 6, 1)
     } else {
-      px(rambut, 5, 1, 6, 2)
-      px(rambut, 5, 3)
-      px(rambut, 10, 3)
+      px(KULIT, 5, 2, 6, 5)
+      px(BAJA, 5, 1, 6, 2)
+      px(BAJA_GELAP, 5, 3, 1, 3)
+      px(BAJA_GELAP, 10, 3, 1, 3)
+      px(BAJA_GELAP, 7, 3, 2, 1)
       px('#222222', 6, 4)
       px('#222222', 9, 4)
+      px('#8a5a2b', 1, 8, 3, 4)
+      px(BAJA, 1, 8, 3, 1)
+      px(EMAS, 2, 9, 1, 2)
+    }
+    if (!menyerang) {
+      px(baju, 12, 9, 1, 2)
+      px(KULIT, 12, 11)
+      if (arah === 'bawah') {
+        px('#4a4a52', 13, 10, 1, 3)
+        px(EMAS, 13, 9)
+      } else {
+        px('#4a4a52', 6, 7)
+        px('#4a4a52', 7, 8)
+        px('#4a4a52', 8, 9)
+      }
     }
   }
+  if (menyerang) pedangSerang(px, arah, serang, baju)
   return kanvas
 }
 
-export function gambarSlime() {
+// ---------- Musuh (f = 0 atau 1) ----------
+export function gambarGoblin(f) {
   const { kanvas, px } = buat(16, 16)
-  px('rgba(0,0,0,0.25)', 3, 13, 10, 2)
-  const lebar = [4, 6, 8, 10, 10, 10, 8]
-  lebar.forEach((l, i) => px('#5cc45c', 8 - l / 2, 6 + i, l, 1))
-  px('#8be08b', 6, 7, 3, 1)
-  px('#2d7a2d', 4, 12, 8, 1)
-  px('#1b1b1b', 6, 9, 1, 2)
-  px('#1b1b1b', 9, 9, 1, 2)
-  return kanvas
-}
-
-export function gambarGoblin() {
-  const { kanvas, px } = buat(16, 16)
+  const dy = f === 1 ? -1 : 0
   px('rgba(0,0,0,0.25)', 4, 14, 8, 2)
-  px('#6b4423', 5, 8, 6, 5)
-  px('#4a2f18', 5, 12, 2, 2)
-  px('#4a2f18', 9, 12, 2, 2)
-  px('#7fb34a', 5, 2, 6, 6)
-  px('#7fb34a', 3, 4, 2, 2)
-  px('#7fb34a', 11, 4, 2, 2)
-  px('#d33333', 6, 4)
-  px('#d33333', 9, 4)
-  px('#ffffff', 7, 7, 2, 1)
-  px('#8b5a2b', 12, 6, 1, 6)
-  px('#8b5a2b', 11, 5, 3, 2)
+  px('#4a2f18', 5, 12, 2, 2 - (f === 1 ? 1 : 0))
+  px('#4a2f18', 9, 12, 2, 2 - (f === 0 ? 1 : 0))
+  px('#6b4423', 5, 8 + dy, 6, 5)
+  px('#3d2814', 5, 11 + dy, 6, 1)
+  px('#7fb34a', 5, 2 + dy, 6, 6)
+  px('#7fb34a', 3, 4 + dy, 2, 2)
+  px('#7fb34a', 11, 4 + dy, 2, 2)
+  px('#d33333', 6, 4 + dy)
+  px('#d33333', 9, 4 + dy)
+  px('#ffffff', 7, 7 + dy, 2, 1)
+  px('#8b5a2b', 12, 6 + dy, 1, 6)
+  px('#a9763d', 11, 5 + dy, 3, 2)
   return kanvas
 }
 
-export function gambarSerigala() {
+export function gambarSerigala(f) {
   const { kanvas, px } = buat(16, 16)
+  const dy = f === 1 ? -1 : 0
   px('rgba(0,0,0,0.25)', 2, 14, 12, 2)
-  px('#8a8f98', 2, 7, 9, 5)
-  px('#8a8f98', 10, 5, 4, 5)
-  px('#6f747c', 10, 3, 1, 2)
-  px('#6f747c', 13, 3, 1, 2)
-  px('#cfd3d8', 13, 8, 2, 2)
-  px('#222222', 14, 8)
-  px('#f2c94c', 11, 6)
-  px('#6f747c', 1, 6, 2, 2)
-  px('#6f747c', 3, 12, 2, 2)
-  px('#6f747c', 8, 12, 2, 2)
+  px('#6f747c', 3, 12, 2, 2 - (f === 1 ? 1 : 0))
+  px('#6f747c', 8, 12, 2, 2 - (f === 0 ? 1 : 0))
+  px('#8a8f98', 2, 7 + dy, 9, 5)
+  px('#8a8f98', 10, 5 + dy, 4, 5)
+  px('#6f747c', 10, 3 + dy, 1, 2)
+  px('#6f747c', 13, 3 + dy, 1, 2)
+  px('#cfd3d8', 13, 8 + dy, 2, 2)
+  px('#222222', 14, 8 + dy)
+  px('#f2c94c', 11, 6 + dy)
+  px('#6f747c', 1, 6 + dy + (f === 1 ? 1 : 0), 2, 2)
   return kanvas
 }
 
+export function gambarKerangka(f) {
+  const { kanvas, px } = buat(20, 20)
+  const tulang = '#e8e4d8'
+  const dy = f === 1 ? -1 : 0
+  px('rgba(0,0,0,0.25)', 5, 18, 10, 2)
+  px(tulang, 7, 14, 2, 4 - (f === 1 ? 1 : 0))
+  px(tulang, 11, 14, 2, 4 - (f === 0 ? 1 : 0))
+  px(tulang, 9, 8 + dy, 2, 6)
+  for (let i = 0; i < 3; i += 1) px(tulang, 6, 8 + i * 2 + dy, 8, 1)
+  px(tulang, 7, 2 + dy, 6, 5)
+  px('#7f8791', 7, 1 + dy, 6, 3)
+  px('#7f8791', 6, 3 + dy, 1, 3)
+  px('#7f8791', 13, 3 + dy, 1, 3)
+  px('#111111', 8, 4 + dy, 1, 2)
+  px('#111111', 11, 4 + dy, 1, 2)
+  px('#9a7b5a', 16, 5 + dy, 1, 8)
+  px(EMAS, 15, 12 + dy, 3, 1)
+  px('#6b4423', 1, 8 + dy, 4, 6)
+  px('#7f8791', 1, 8 + dy, 4, 1)
+  return kanvas
+}
+
+export function gambarOrc(f) {
+  const { kanvas, px } = buat(20, 20)
+  const dy = f === 1 ? -1 : 0
+  px('rgba(0,0,0,0.25)', 4, 18, 12, 2)
+  px('#3a2616', 6, 15, 3, 3 - (f === 1 ? 1 : 0))
+  px('#3a2616', 11, 15, 3, 3 - (f === 0 ? 1 : 0))
+  px('#5f8f4e', 5, 7 + dy, 10, 8)
+  px('#6b4423', 5, 9 + dy, 10, 4)
+  px('#4a3018', 5, 12 + dy, 10, 1)
+  px('#5f8f4e', 3, 8 + dy, 2, 5)
+  px('#5f8f4e', 15, 8 + dy, 2, 5)
+  px('#5f8f4e', 6, 1 + dy, 8, 7)
+  px('#3a3f46', 6, 1 + dy, 8, 2)
+  px('#e8e0c8', 7, 6 + dy, 1, 2)
+  px('#e8e0c8', 12, 6 + dy, 1, 2)
+  px('#ffd23f', 8, 3 + dy)
+  px('#ffd23f', 11, 3 + dy)
+  px('#6b4423', 17, 4 + dy, 1, 10)
+  px('#9aa0a8', 15, 3 + dy, 4, 3)
+  return kanvas
+}
+
+// Bos: naga besar (menghadap kiri), sayap mengepak antara frame 0 dan 1
+export function gambarNaga(f) {
+  const { kanvas, px } = buat(32, 28, 3)
+  const badan = '#9b2d2d'
+  const gelap = '#6e1f1f'
+  const perut = '#d9a066'
+  const tanduk = '#e8e0c8'
+  const sayap = '#7a2424'
+  px('rgba(0,0,0,0.25)', 3, 25, 26, 3)
+  if (f === 0) {
+    px(gelap, 13, 1, 2, 11)
+    for (let y = 2; y < 12; y += 1) px(sayap, 15, y, y - 1, 1)
+  } else {
+    px(gelap, 13, 9, 2, 6)
+    for (let y = 9; y < 15; y += 1) px(sayap, 15, y, 10 - (y - 9), 1)
+  }
+  px(badan, 24, 17, 5, 3)
+  px(badan, 28, 15, 3, 3)
+  px(tanduk, 30, 12, 2, 4)
+  const lebar = [12, 16, 18, 18, 18, 16, 12]
+  lebar.forEach((l, i) => px(badan, 16 - l / 2, 12 + i, l, 1))
+  px(perut, 12, 17, 8, 5)
+  px(gelap, 10, 21, 3, 4)
+  px(gelap, 19, 21, 3, 4)
+  px(tanduk, 10, 25, 3, 1)
+  px(tanduk, 19, 25, 3, 1)
+  px(badan, 9, 10, 5, 6)
+  px(badan, 3, 8, 9, 6)
+  px(badan, 1, 10, 4, 3)
+  px(tanduk, 9, 5, 2, 4)
+  px(tanduk, 5, 6, 1, 3)
+  px('#ffd23f', 6, 9, 2, 1)
+  px('#ffffff', 2, 13, 3, 1)
+  px(gelap, 1, 11)
+  return kanvas
+}
+
+// ---------- Objek dunia ----------
 export function gambarPohon() {
   const { kanvas, px } = buat(20, 24)
   px('rgba(0,0,0,0.25)', 4, 21, 12, 3)
@@ -146,6 +289,137 @@ export function gambarBatu() {
   return kanvas
 }
 
+export function gambarNisan() {
+  const { kanvas, px } = buat(10, 12)
+  px('rgba(0,0,0,0.2)', 1, 10, 8, 2)
+  px('#9a9ea6', 2, 3, 6, 8)
+  px('#9a9ea6', 3, 2, 4, 1)
+  px('#b5b9c0', 3, 3, 1, 6)
+  px('#6f7278', 4, 5, 2, 1)
+  px('#6f7278', 5, 4, 1, 3)
+  return kanvas
+}
+
+export function gambarJerami() {
+  const { kanvas, px } = buat(14, 10)
+  px('rgba(0,0,0,0.2)', 1, 8, 12, 2)
+  px('#d6b44a', 1, 2, 12, 6)
+  px('#b8962f', 1, 4, 12, 1)
+  px('#b8962f', 1, 6, 12, 1)
+  px('#8a6a1f', 4, 2, 1, 6)
+  px('#8a6a1f', 9, 2, 1, 6)
+  return kanvas
+}
+
+export function gambarObor() {
+  const { kanvas, px } = buat(6, 14)
+  px('#6b4423', 2, 5, 2, 9)
+  px('#ff9a1f', 1, 1, 4, 4)
+  px('#ffd23f', 2, 2, 2, 2)
+  px('#ff5a1f', 2, 0, 2, 1)
+  return kanvas
+}
+
+export function gambarSumur() {
+  const { kanvas, px } = buat(16, 18)
+  px('rgba(0,0,0,0.25)', 1, 16, 14, 2)
+  px('#9a9ea6', 2, 9, 12, 7)
+  px('#6f7278', 4, 9, 8, 2)
+  px('#3a4f6b', 4, 9, 8, 1)
+  px('#6b4423', 2, 3, 1, 8)
+  px('#6b4423', 13, 3, 1, 8)
+  px('#8a5a2b', 1, 2, 14, 2)
+  px('#7a4a1e', 4, 1, 8, 1)
+  return kanvas
+}
+
+export function gambarPondok(variasi = 0) {
+  const { kanvas, px } = buat(36, 30)
+  const atap = variasi === 0 ? '#d9b44a' : '#a04a2e'
+  const atapGelap = variasi === 0 ? '#b8962f' : '#843a24'
+  px('rgba(0,0,0,0.25)', 2, 27, 32, 3)
+  px('#e8dcc0', 4, 12, 28, 15)
+  px('#6b4423', 4, 12, 28, 1)
+  px('#6b4423', 4, 18, 28, 1)
+  px('#6b4423', 4, 26, 28, 1)
+  px('#6b4423', 4, 12, 1, 15)
+  px('#6b4423', 31, 12, 1, 15)
+  px('#6b4423', 17, 12, 1, 15)
+  for (let i = 0; i < 8; i += 1) {
+    const l = 10 + i * 4
+    px(i % 2 === 0 ? atap : atapGelap, 18 - l / 2, 4 + i, l, 1)
+  }
+  px(atapGelap, 0, 12, 36, 1)
+  px('#7a4a1e', 20, 18, 6, 9)
+  px('#9ad0ef', 8, 16, 5, 4)
+  px('#8a8e96', 26, 1, 4, 6)
+  return kanvas
+}
+
+export function gambarKios() {
+  const { kanvas, px } = buat(40, 34)
+  px('rgba(0,0,0,0.25)', 2, 31, 36, 3)
+  px('#7a4a1e', 4, 10, 2, 21)
+  px('#7a4a1e', 34, 10, 2, 21)
+  px('#d9c39a', 6, 14, 28, 12)
+  for (let i = 0; i < 12; i += 1) {
+    px(i % 2 === 0 ? '#b83a3a' : '#f0e9d6', 2 + i * 3, 6, 3, 6)
+    if (i % 2 === 0) px('#b83a3a', 2 + i * 3, 12, 3, 2)
+  }
+  px('#8a5a2b', 6, 24, 28, 7)
+  px('#e0a030', 9, 21, 4, 3)
+  px('#d93025', 16, 21, 4, 3)
+  px('#4a9d5b', 23, 21, 4, 3)
+  px('#6b4423', 14, 0, 12, 5)
+  px('#f0e9d6', 16, 2, 8, 1)
+  return kanvas
+}
+
+export function gambarKastil() {
+  const { kanvas, px } = buat(80, 56, 3)
+  const batu = '#9a9ea6'
+  const gelap = '#7d8189'
+  const terang = '#b5b9c0'
+  px('rgba(0,0,0,0.25)', 4, 52, 72, 4)
+  px(batu, 16, 24, 48, 28)
+  for (let x = 16; x < 64; x += 8) px(batu, x, 20, 4, 4)
+  px(batu, 2, 10, 16, 42)
+  px(batu, 62, 10, 16, 42)
+  for (let x = 2; x < 18; x += 6) {
+    px(batu, x, 6, 4, 4)
+    px(batu, x + 60, 6, 4, 4)
+  }
+  px(terang, 2, 10, 16, 1)
+  px(terang, 62, 10, 16, 1)
+  px(gelap, 2, 51, 76, 1)
+  px('#33363c', 9, 20, 2, 6)
+  px('#33363c', 69, 20, 2, 6)
+  px('#33363c', 9, 34, 2, 6)
+  px('#33363c', 69, 34, 2, 6)
+  px('#3a2616', 32, 32, 16, 20)
+  px('#3a2616', 34, 29, 12, 3)
+  px('#7a4a1e', 34, 34, 12, 18)
+  px(gelap, 40, 34, 1, 18)
+  px('#6b4423', 9, 0, 1, 6)
+  px('#c0392b', 10, 0, 6, 4)
+  px('#6b4423', 69, 0, 1, 6)
+  px('#2e5fa3', 70, 0, 6, 4)
+  return kanvas
+}
+
+export function gambarGua() {
+  const { kanvas, px } = buat(40, 30)
+  px('rgba(0,0,0,0.3)', 2, 27, 36, 3)
+  px('#6b6560', 2, 6, 36, 22)
+  px('#5a554f', 2, 6, 36, 3)
+  px('#7b756f', 6, 4, 28, 3)
+  px('#1a1210', 12, 12, 16, 16)
+  px('#1a1210', 14, 9, 12, 3)
+  px('#7b756f', 4, 10, 6, 6)
+  px('#7b756f', 30, 14, 6, 6)
+  return kanvas
+}
+
 export function gambarPapan() {
   const { kanvas, px } = buat(14, 16)
   px('rgba(0,0,0,0.25)', 2, 14, 10, 2)
@@ -159,19 +433,21 @@ export function gambarPapan() {
 }
 
 export function gambarGerbang() {
-  const { kanvas, px } = buat(16, 24)
-  px('rgba(0,0,0,0.25)', 1, 21, 14, 3)
-  px('#8d9096', 1, 4, 3, 18)
-  px('#8d9096', 12, 4, 3, 18)
-  px('#8d9096', 3, 2, 10, 3)
-  px('#a9acb2', 1, 4, 1, 18)
-  px('rgba(120,200,255,0.55)', 4, 5, 8, 17)
-  px('rgba(255,255,255,0.5)', 6, 8, 2, 10)
+  const { kanvas, px } = buat(20, 28)
+  px('rgba(0,0,0,0.25)', 1, 25, 18, 3)
+  px('#8d9096', 1, 6, 4, 20)
+  px('#8d9096', 15, 6, 4, 20)
+  px('#8d9096', 3, 2, 14, 5)
+  px('#a9acb2', 1, 6, 1, 20)
+  px('#a9acb2', 3, 2, 14, 1)
+  px('rgba(120,200,255,0.55)', 5, 7, 10, 19)
+  px('rgba(255,255,255,0.5)', 8, 10, 2, 12)
   return kanvas
 }
 
+// ---------- Kebun (petak 48x48 piksel) ----------
 export function gambarPetak(terkunci = false) {
-  const { kanvas, px } = buat(16, 16)
+  const { kanvas, px } = buat(16, 16, 3)
   const dasar = terkunci ? '#6b6258' : '#7b5230'
   const gelap = terkunci ? '#5b534a' : '#5a3920'
   px(dasar, 0, 0, 16, 16)
@@ -186,7 +462,7 @@ export function gambarPetak(terkunci = false) {
 const WARNA_BUAH = { wortel: '#f08a24', tomat: '#d93025', labu: '#e8a317' }
 
 export function gambarTanaman(jenis, tahap) {
-  const { kanvas, px } = buat(16, 16)
+  const { kanvas, px } = buat(16, 16, 3)
   const daun = '#3f9a3f'
   const buah = WARNA_BUAH[jenis]
   if (tahap === 0) {
@@ -219,20 +495,22 @@ export function gambarTanaman(jenis, tahap) {
   return kanvas
 }
 
-const ATAP = [
-  ['#b5532f', '#9a4426'],
-  ['#a04040', '#843333'],
-  ['#6a5acd', '#5649a8'],
-  ['#2e8b8b', '#237070'],
-  ['#c28a1c', '#a67413'],
-]
-
+// ---------- Rumah pribadi: pondok jerami sampai manor batu ----------
 export function gambarRumah(level) {
   const { kanvas, px } = buat(48, 40)
-  const [atap, atapGelap] = ATAP[level - 1] ?? ATAP[0]
+  const dinding = level >= 5 ? '#9a9ea6' : '#e8dcc0'
+  const atap = level <= 2 ? '#d9b44a' : level === 3 ? '#a04a2e' : level === 4 ? '#8a3b2a' : '#4f5f8a'
+  const atapGelap = level <= 2 ? '#b8962f' : level === 3 ? '#843a24' : level === 4 ? '#6d2f21' : '#3f4d70'
   px('rgba(0,0,0,0.25)', 3, 36, 42, 4)
-  px('#e8d9b0', 6, 16, 36, 20)
-  px('#c9b88a', 6, 32, 36, 4)
+  px(dinding, 6, 16, 36, 20)
+  if (level >= 3 && level < 5) {
+    px('#6b4423', 6, 16, 36, 1)
+    px('#6b4423', 6, 25, 36, 1)
+    px('#6b4423', 6, 35, 36, 1)
+    px('#6b4423', 6, 16, 1, 20)
+    px('#6b4423', 41, 16, 1, 20)
+    px('#6b4423', 23, 16, 2, 20)
+  }
   for (let i = 0; i < 10; i += 1) {
     const l = 12 + i * 4
     px(i % 2 === 0 ? atap : atapGelap, 24 - l / 2, 6 + i, l, 1)
@@ -242,32 +520,41 @@ export function gambarRumah(level) {
   px('#f2c94c', 25, 31)
   px('#9ad0ef', 10, 21, 7, 6)
   px('#9ad0ef', 31, 21, 7, 6)
-  px('#ffffff', 13, 21, 1, 6)
-  px('#ffffff', 34, 21, 1, 6)
-  if (level >= 2) px('#8b4a3a', 34, 2, 5, 8)
-  if (level >= 3) {
+  px('#5a3b1e', 13, 21, 1, 6)
+  px('#5a3b1e', 34, 21, 1, 6)
+  if (level >= 2) {
+    px('#8d9096', 34, 2, 5, 8)
     px('#d94f7a', 10, 28, 7, 2)
     px('#d94f7a', 31, 28, 7, 2)
   }
   if (level >= 4) px('#9ad0ef', 21, 9, 6, 4)
   if (level >= 5) {
-    for (let x = 0; x < 48; x += 4) px('#f5f0dc', x, 36, 2, 4)
+    px('#8d9096', 6, 32, 36, 4)
+    px('#6b4423', 3, 0, 1, 12)
+    px('#c0392b', 4, 1, 8, 4)
   }
   return kanvas
 }
 
-export function gambarToko() {
-  const { kanvas, px } = buat(48, 40)
-  px('rgba(0,0,0,0.25)', 3, 36, 42, 4)
-  px('#d9c39a', 6, 16, 36, 20)
-  for (let i = 0; i < 12; i += 1) px(i % 2 === 0 ? '#d94f4f' : '#f5f0dc', 6 + i * 3, 12, 3, 5)
-  px('#a63b3b', 6, 17, 36, 1)
-  px('#7a4a1e', 10, 26, 28, 5)
-  px('#e0a030', 13, 23, 4, 3)
-  px('#d93025', 20, 23, 4, 3)
-  px('#4a9d5b', 27, 23, 4, 3)
-  px('#7a4a1e', 17, 3, 14, 8)
-  px('#f5f0dc', 19, 5, 10, 1)
-  px('#f5f0dc', 19, 8, 7, 1)
-  return kanvas
+// ---------- Pratinjau untuk sorotan di beranda ----------
+export function gambarPratinjau(kanvas) {
+  const ctx = kanvas.getContext('2d')
+  ctx.imageSmoothingEnabled = false
+  const w = kanvas.width
+  const h = kanvas.height
+  const horizon = 168
+  const langit = ctx.createLinearGradient(0, 0, 0, horizon)
+  langit.addColorStop(0, '#7fb8ea')
+  langit.addColorStop(1, '#d9eefb')
+  ctx.fillStyle = langit
+  ctx.fillRect(0, 0, w, horizon)
+  ctx.fillStyle = '#5a9e4b'
+  ctx.fillRect(0, horizon, w, h - horizon)
+  ctx.fillStyle = '#b8a07a'
+  ctx.fillRect(0, horizon + 56, w, 22)
+  const taruh = (sprite, x, y, skala = 1) =>
+    ctx.drawImage(sprite, x, y, sprite.width * skala, sprite.height * skala)
+  taruh(gambarKastil(), 6, horizon - 168 + 14)
+  taruh(gambarPemain('samping', 0, '#2e5fa3', 1), 268, horizon, 3)
+  taruh(gambarNaga(0), 372, horizon - 84 + 34)
 }

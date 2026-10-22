@@ -7,13 +7,13 @@ async function rpc(nama, args) {
 }
 
 export const masukGame = () => rpc('game_masuk')
+export const ambilDunia = () => rpc('game_dunia')
+export const serang = (idSpawn) => rpc('game_serang', { p_spawn: idSpawn })
 export const tanam = (indeks, tanaman) => rpc('game_tanam', { p_indeks: indeks, p_tanaman: tanaman })
 export const panen = (indeks) => rpc('game_panen', { p_indeks: indeks })
 export const beli = (item, jumlah) => rpc('game_beli', { p_item: item, p_jumlah: jumlah })
 export const jual = (item, jumlah) => rpc('game_jual', { p_item: item, p_jumlah: jumlah })
 export const upgradeRumah = () => rpc('game_upgrade_rumah')
-export const lawan = (musuh) =>
-  rpc('game_lawan', { p_musuh: musuh, p_request: crypto.randomUUID() })
 
 export async function ambilKatalog() {
   const [item, tanaman] = await Promise.all([
