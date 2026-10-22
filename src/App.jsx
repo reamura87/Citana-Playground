@@ -22,6 +22,7 @@ import { EditorEpisode, EditorTulisan, TulisanSaya } from './pages/TulisPages'
 import { AlatList, HapusLatarPage } from './pages/AlatPages'
 import PdfKeWordPage from './pages/PdfKeWordPage'
 import PassfotoPage from './pages/PasfotoPage'
+import GamePage from './pages/GamePage'
 
 function App() {
   const [tema, setTema] = useState(
@@ -74,6 +75,7 @@ function App() {
           <Route path="/alat/hapus-latar" element={<HapusLatarPage />} />
           <Route path="/alat/pdf-ke-word" element={<PdfKeWordPage />} />
           <Route path="/alat/pas-foto" element={<PassfotoPage />} />
+          <Route path="/game" element={<RuteMasuk><GamePage /></RuteMasuk>} />
         </Routes>
       </main>
       <Footer />

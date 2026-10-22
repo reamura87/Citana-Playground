@@ -21,6 +21,7 @@
     "dompurify": "^3.4.17",
     "onnxruntime-web": "1.21.0",
     "pdfjs-dist": "^6.4.299",
+    "phaser": "^4.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4"

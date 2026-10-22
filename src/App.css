@@ -625,3 +625,49 @@ main { flex: 1; padding-top: 12px; }
   color: var(--muted);
 }
 .geser input { width: 100%; }
+
+/* Game */
+.game-area { position: relative; max-width: 760px; margin: 0 auto; }
+.game-hud { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.9rem; }
+.game-hud-kanan { display: grid; gap: 2px; text-align: right; }
+.game-xp { height: 6px; width: 160px; margin: 4px 0 2px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.game-xp span { display: block; height: 100%; background: var(--fg); }
+.game-kanvas { width: 100%; aspect-ratio: 3 / 2; background: #1d2b1d; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.game-kanvas canvas { display: block; }
+.game-catatan { margin: 10px 0 0; padding: 8px 12px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; font-size: 0.9rem; }
+
+.game-panel {
+  position: absolute;
+  inset: 40px 12px auto;
+  z-index: 10;
+  display: grid;
+  gap: 10px;
+  max-height: 80%;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.game-panel h2 { margin: 0; }
+.tombol.kecil { padding: 4px 10px; font-size: 0.85rem; }
+
+/* Kontrol layar sentuh: hanya tampil di perangkat sentuh */
+.game-kontrol { display: none; justify-content: space-between; align-items: center; margin-top: 12px; }
+@media (pointer: coarse) { .game-kontrol { display: flex; } }
+.game-dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
+.game-dpad button, .game-aksi {
+  font: inherit;
+  color: var(--fg);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  touch-action: none;
+  user-select: none;
+}
+.dpad-atas { grid-column: 2; grid-row: 1; }
+.dpad-kiri { grid-column: 1; grid-row: 2; }
+.dpad-kanan { grid-column: 3; grid-row: 2; }
+.dpad-bawah { grid-column: 2; grid-row: 3; }
+.game-aksi { width: 84px; height: 84px; border-radius: 50%; font-weight: 600; }
