@@ -85,6 +85,7 @@ export const PETA = {
     hutan: [80, 280, 460, 720],
     padang: [1060, 640, 440, 440],
     reruntuhan: [560, 380, 460, 250],
+    air: [{ cx: 250, cy: 1090, rx: 130, ry: 60 }],
     larangan: [
       [760, 300, 80, 560],
       [0, 570, 1600, 60],
@@ -94,6 +95,7 @@ export const PETA = {
       [1060, 440, 260, 220],
       [830, 350, 540, 260],
       [430, 960, 120, 80],
+      [100, 990, 340, 220],
     ],
   },
   pribadi: {
@@ -103,6 +105,7 @@ export const PETA = {
     rumah: { x: 260, y: 380 },
     sumur: { x: 420, y: 330 },
     gerbang: { x: 640, y: 910, ke: 'server', label: 'Ke kerajaan' },
+    air: [{ cx: 1020, cy: 740, rx: 100, ry: 50 }],
     larangan: [
       [150, 200, 230, 210],
       [500, 160, 380, 310],
@@ -110,6 +113,7 @@ export const PETA = {
       [210, 460, 500, 100],
       [590, 460, 100, 440],
       [560, 820, 160, 140],
+      [880, 660, 280, 160],
     ],
   },
 }
@@ -205,10 +209,6 @@ export function gambarTanah(peta) {
     ctx.fillStyle = '#9a9ea6'
     ctx.fillRect(720, 300, 160, 44)
 
-    ctx.fillStyle = '#4aa3d9'
-    ctx.beginPath()
-    ctx.ellipse(250, 1090, 80, 40, 0, 0, Math.PI * 2)
-    ctx.fill()
   } else {
     jalur(260, 400, 260, 510, 56)
     jalur(260, 510, 640, 510, 56)
@@ -218,6 +218,29 @@ export function gambarTanah(peta) {
     ctx.strokeStyle = '#7a4a1e'
     ctx.lineWidth = 6
     ctx.strokeRect(516, 196, 280, 216)
+  }
+
+    for (const a of PETA[peta].air ?? []) {
+    const elips = (rx, ry, warna) => {
+      ctx.fillStyle = warna
+      ctx.beginPath()
+      ctx.ellipse(a.cx, a.cy, rx, ry, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    elips(a.rx + 40, a.ry + 26, '#d8c690') // pasir tepi
+    elips(a.rx + 22, a.ry + 12, '#6fc3e6') // air dangkal
+    elips(a.rx, a.ry, '#3f93c9') // air dalam
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+    ctx.lineWidth = 2
+    for (let i = 0; i < 7; i += 1) {
+      ctx.beginPath()
+      ctx.ellipse(
+        a.cx - a.rx * 0.6 + rnd() * a.rx * 1.2,
+        a.cy - a.ry * 0.5 + rnd() * a.ry,
+        12, 4, 0, 0, Math.PI,
+      )
+      ctx.stroke()
+    }
   }
   return kanvas
 }

@@ -712,3 +712,26 @@ main { flex: 1; padding-top: 12px; }
   .game-sorotan { grid-template-columns: 1fr; padding: 16px; }
   .game-sorotan-gambar { order: -1; }
 }
+
+/* HP, target, dan layar gugur */
+.game-hp span { background: #d94a3d; }
+.game-target { margin-bottom: 8px; }
+.game-bingkai { position: relative; }
+.game-mati {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  color: #ffffff;
+  background: rgba(10, 6, 6, 0.72);
+  border-radius: 8px;
+}
+.game-mati strong { font-size: 1.6rem; }
+
+/* Panel status dan poin */
+.baris-poin { display: grid; gap: 4px; }
+.baris-poin-kepala { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.baris-poin .game-xp { width: 100%; }

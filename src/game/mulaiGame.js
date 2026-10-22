@@ -11,7 +11,6 @@ export function buatGame(induk, { kontrol, status }) {
     pixelArt: true,
     roundPixels: true,
     backgroundColor: '#1d2b1d',
-    physics: { default: 'arcade', arcade: { debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [DuniaScene],
     callbacks: {
@@ -19,6 +18,8 @@ export function buatGame(induk, { kontrol, status }) {
         game.registry.set('kontrol', kontrol)
         game.registry.set('warna', warnaDariNama(status.pemain.nama))
         game.registry.set('terkunci', false)
+        game.registry.set('mati', Boolean(status.pemain.mati_sampai))
+        game.registry.set('jedaSerang', status.pemain.jeda_serang_ms)
         game.registry.set('selisihWaktu', Date.parse(status.waktu_server) - Date.now())
         game.registry.set('status', status)
       },

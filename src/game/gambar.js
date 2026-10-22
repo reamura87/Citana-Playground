@@ -375,6 +375,34 @@ export function gambarKios() {
   return kanvas
 }
 
+export function gambarPandaiBesi() {
+  const { kanvas, px } = buat(44, 38)
+  px('rgba(0,0,0,0.25)', 2, 35, 40, 3)
+  px('#8d9096', 4, 14, 36, 22)
+  px('#7d8189', 4, 14, 36, 1)
+  px('#7d8189', 4, 22, 36, 1)
+  px('#7d8189', 4, 30, 36, 1)
+  px('#6b4423', 2, 10, 40, 4)
+  for (let i = 0; i < 8; i += 1) {
+    const l = 14 + i * 4
+    px(i % 2 === 0 ? '#5a4636' : '#4a3a2c', 22 - l / 2, 2 + i, l, 1)
+  }
+  px('#8d9096', 32, 0, 5, 8)
+  px('#ff9a1f', 33, 0, 3, 2)
+  px('#2b2b30', 8, 24, 10, 12)
+  px('#ff7a1f', 10, 28, 6, 6)
+  px('#ffd23f', 12, 30, 2, 3)
+  px('#3a3f46', 24, 28, 10, 3)
+  px('#3a3f46', 26, 25, 6, 3)
+  px('#3a3f46', 25, 31, 8, 4)
+  px('#6b4423', 17, 15, 10, 7)
+  px('#d8dee4', 21, 16, 1, 5)
+  px('#d4af37', 19, 19, 5, 1)
+  px('#aab2bb', 28, 16, 5, 6)
+  px('#d4af37', 30, 17, 1, 4)
+  return kanvas
+}
+
 export function gambarKastil() {
   const { kanvas, px } = buat(80, 56, 3)
   const batu = '#9a9ea6'
