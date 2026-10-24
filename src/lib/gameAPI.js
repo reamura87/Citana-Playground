@@ -27,3 +27,33 @@ export async function ambilKatalog() {
   if (tanaman.error) throw tanaman.error
   return { item: item.data, tanaman: tanaman.data }
 }
+
+export async function ambilRiwayatChat() {
+  const { data, error } = await supabase
+    .from('game_chat')
+    .select('id, penulis_id, penulis_nama, isi, dibuat_pada')
+    .order('id', { ascending: false })
+    .limit(30)
+  if (error) throw new Error(error.message)
+  return data.reverse()
+}
+
+export const kirimChat = (isi) => rpc('game_kirim_chat', { p_isi: isi })
+export const bisukan = (pemain, menit) => rpc('game_bisukan', { p_pemain: pemain, p_menit: menit })
+
+export async function hapusChat(id) {
+  const { error } = await supabase.from('game_chat').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// Pesan baru dan pesan terhapus datang lewat Realtime. Mengembalikan fungsi untuk berhenti berlangganan.
+export function langgananChat({ onBaru, onHapus }) {
+  const kanal = supabase
+    .channel('game-chat')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_chat' }, (p) => onBaru(p.new))
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'game_chat' }, (p) => onHapus(p.old.id))
+    .subscribe()
+  return () => {
+    supabase.removeChannel(kanal)
+  }
+}

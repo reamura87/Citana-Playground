@@ -18,6 +18,9 @@ export default function Footer() {
             <>
               {' · '}
               <Link to="/masuk">Masuk</Link>
+              <Link to="/syarat">Syarat</Link>
+              <Link to="/privasi">Privasi</Link>
+              <Link to="/lapor">Lapor konten</Link>
             </>
           )}
           {sesi && (

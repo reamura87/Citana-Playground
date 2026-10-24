@@ -23,6 +23,7 @@ import { AlatList, HapusLatarPage } from './pages/AlatPages'
 import PdfKeWordPage from './pages/PdfKeWordPage'
 import PassfotoPage from './pages/PasfotoPage'
 import GamePage from './pages/GamePage'
+import { Lapor, Privasi, Syarat } from './pages/halamanhukum'
 
 function App() {
   const [tema, setTema] = useState(
@@ -76,6 +77,9 @@ function App() {
           <Route path="/alat/pdf-ke-word" element={<PdfKeWordPage />} />
           <Route path="/alat/pas-foto" element={<PassfotoPage />} />
           <Route path="/game" element={<RuteMasuk><GamePage /></RuteMasuk>} />
+          <Route path="/syarat" element={<Syarat />} />
+          <Route path="/privasi" element={<Privasi />} />
+          <Route path="/lapor" element={<Lapor />} />
         </Routes>
       </main>
       <Footer />

@@ -15,6 +15,10 @@ import {
   upgradeRumah,
 } from '../lib/gameAPI'
 
+import PanelChat from '../components/PanelChat'
+import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
+import { useAuth, useSesi } from '../lib/useSesi'
+
 const format = (n) => n.toLocaleString('id-ID')
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
 
@@ -41,6 +45,15 @@ function ringkasKill(h) {
   return `${h.nama} dikalahkan: +${h.xp} XP, +${h.gold} gold.${naik}`
 }
 
+function teksMp(status, diizinkan, afk) {
+  if (!diizinkan) return 'Mode multiplayer sedang dinonaktifkan.'
+  if (afk) return 'Kamu tidak aktif, jadi koneksi multiplayer dijeda. Gerak atau klik untuk bergabung lagi.'
+  if (status.jenis === 'terhubung') return `Ruang ${status.ruang} · ${status.jumlah} pemain online`
+  if (status.jenis === 'penuh') return 'Semua ruang penuh. Kamu tetap bisa bermain tanpa melihat pemain lain.'
+  if (status.jenis === 'gagal') return 'Gagal tersambung ke multiplayer. Muat ulang halaman untuk mencoba lagi.'
+  return 'Menyambung ke multiplayer…'
+}
+
 export default function GamePage() {
   const [tahap, setTahap] = useState('memuat') // memuat | siap | gagal
   const [kesalahan, setKesalahan] = useState('')
@@ -65,6 +78,33 @@ export default function GamePage() {
   const serangRef = useRef(null)
   const diserangRef = useRef(null)
   const segarkanMati = useRef(false)
+
+    const sesi = useSesi()
+  const userId = sesi?.user.id ?? null
+  const { profil } = useAuth()
+  const { tampak, afk } = useAktivitas()
+  const mpDiizinkan = dunia?.mp?.aktif ?? false
+  const chatDiizinkan = dunia?.mp?.chat ?? false
+  const {
+    status: statusMp,
+    kirimPosisi,
+    sinkron,
+  } = useMultiplayer({
+    userId,
+    aktif: tahap === 'siap' && peta === 'server' && mpDiizinkan && tampak && !afk,
+    maks: dunia?.mp?.maks ?? 12,
+    gameRef,
+  })
+  const chat = useChat({
+    aktif: tahap === 'siap' && peta === 'server' && chatDiizinkan && tampak,
+    gameRef,
+  })
+  const mpApi = useRef({})
+
+  useEffect(() => {
+    mpApi.current = { kirimPosisi, sinkron }
+  })
+
 
   function terapkan(st) {
     setStatus(st)
@@ -157,27 +197,32 @@ export default function GamePage() {
     }
   }, [tahap, peta])
 
-  // Jalankan Phaser (dimuat malas)
+  /  // Jalankan Phaser (dimuat malas)
   useEffect(() => {
     if (tahap !== 'siap' || !wadah.current) return
     let batal = false
     let game = null
     import('../game/mulaiGame').then(({ buatGame }) => {
       if (batal || !wadah.current) return
-      game = buatGame(wadah.current, { kontrol: kontrol.current, status: statusRef.current })
+      game = buatGame(wadah.current, { kontrol: kontrol.current, status: statusRef.current, userId })
       gameRef.current = game
       game.registry.set('dunia', duniaRef.current)
       game.events.on('interaksi', (o) => aksiRef.current?.(o))
       game.events.on('serang', (id) => serangRef.current?.(id))
       game.events.on('diserang', (id) => diserangRef.current?.(id))
-      game.events.on('peta', (nama) => setPeta(nama))
+      game.events.on('posisi-saya', (d) => mpApi.current.kirimPosisi?.(d))
+      game.events.on('peta', (nama) => {
+        setPeta(nama)
+        // Beri waktu scene selesai dibuat sebelum pemain lain diisi ulang
+        if (nama === 'server') setTimeout(() => mpApi.current.sinkron?.(), 80)
+      })
     })
     return () => {
       batal = true
       game?.destroy(true)
       gameRef.current = null
     }
-  }, [tahap])
+  }, [tahap, userId])
 
   // Kirim status dan keadaan dunia terbaru ke game
   useEffect(() => {
@@ -297,7 +342,7 @@ export default function GamePage() {
     else if (o.jenis === 'petak') aksiPetak(o.indeks)
     else if (o.jenis === 'papan') {
       setCatatan(
-        'Klik atau tekan Spasi untuk menebas. Musuh akan mengejar dan membalas, jadi jaga HP-mu. Kalau HP habis, kamu menunggu 5 menit. Tiap naik level kamu mendapat 3 poin untuk Health atau Kecepatan serang. Senjata dan zirah dibeli di Pandai Besi.',
+                'Jir mati awokaowkawok. Klik atau tekan Spasi untuk menebas. Musuh akan mengejar dan membalas, jadi jaga HP-mu. Kalau HP habis, kamu menunggu 5 menit. Tiap naik level kamu mendapat 3 poin untuk Health atau Kecepatan serang. Senjata dan zirah dibeli di Pandai Besi. Tekan Enter untuk mengobrol dengan pemain lain.',
       )
     }
   }
@@ -422,6 +467,26 @@ export default function GamePage() {
           </button>
           <span className="redup kecil">Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E</span>
         </div>
+
+                {peta === 'server' && (
+          <>
+            <p className="redup kecil" role="status">
+              {teksMp(statusMp, dunia ? mpDiizinkan : true, afk)}
+            </p>
+            {chatDiizinkan ? (
+              <PanelChat
+                pesan={chat.pesan}
+                kesalahan={chat.kesalahan}
+                onKirim={chat.kirim}
+                admin={profil?.peran === 'admin'}
+                onHapus={chat.hapus}
+                onBisu={chat.bisu}
+              />
+            ) : (
+              dunia && <p className="redup kecil">Chat sedang dinonaktifkan.</p>
+            )}
+          </>
+        )}
 
         {catatan && <p className="game-catatan" role="status">{catatan}</p>}
 

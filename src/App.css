@@ -735,3 +735,20 @@ main { flex: 1; padding-top: 12px; }
 .baris-poin { display: grid; gap: 4px; }
 .baris-poin-kepala { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .baris-poin .game-xp { width: 100%; }
+
+/* Chat game */
+.game-chat { margin-top: 10px; padding: 10px; background: var(--field); border: 1px solid var(--line); border-radius: 8px; }
+.game-chat-daftar { list-style: none; margin: 0 0 8px; padding: 0; max-height: 160px; overflow-y: auto; font-size: 0.88rem; }
+.game-chat-daftar li { padding: 2px 0; overflow-wrap: anywhere; }
+.game-chat-admin { display: inline-flex; gap: 8px; margin-left: 8px; }
+.game-chat-form { display: flex; gap: 8px; }
+.game-chat-form input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+}

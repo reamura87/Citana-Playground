@@ -25,6 +25,7 @@ import {
   gambarSerigala,
   gambarSumur,
   gambarTanaman,
+  warnaDariNama,
 } from './gambar'
 import { DOMAIN_BOS, PETA, POSISI_PETAK, gambarTanah, posisiPatroli, sebarDekorasi } from './peta'
 
@@ -77,6 +78,13 @@ export default class DuniaScene extends Phaser.Scene {
     this.sedangMati = false
     this.bolehSerangLagi = 0
     this.riakBerikut = 0
+    this.pemainLain = new Map()
+    this.namaPemain = new Map()
+    this.gelembung = new Map()
+    this.posisiCek = 0
+    this.posisiLalu = null
+    this.masihGerak = false
+    this.pernahSerang = false
   }
 
   create() {
@@ -633,6 +641,7 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.time.now < this.bolehSerangLagi) return
     this.bolehSerangLagi = this.time.now + (this.registry.get('jedaSerang') ?? 420)
     this.menyerang = true
+    this.pernahSerang = true
 
     const target = this.cariTarget(titik)
     const arahKe = titik ?? (target ? { x: target.x, y: target.y } : null)
@@ -707,6 +716,167 @@ export default class DuniaScene extends Phaser.Scene {
     return false
   }
 
+    // ---------- Pemain lain (multiplayer) ----------
+  pastikanWarna(baju) {
+    const kunci = baju.replace('#', '')
+    if (!this.textures.exists(`pl_${kunci}_bawah_0`)) {
+      for (const arah of ['bawah', 'atas', 'samping']) {
+        for (const n of [0, 1, 2]) {
+          this.textures.addCanvas(`pl_${kunci}_${arah}_${n}`, gambarPemain(arah, n, baju))
+        }
+        this.textures.addCanvas(`pl_${kunci}_${arah}_s`, gambarPemain(arah, 0, baju, 1))
+      }
+    }
+    return kunci
+  }
+
+  buatPemainLain(id) {
+    const kunci = this.pastikanWarna(warnaDariNama(id).baju)
+    const sprite = this.add.sprite(0, 0, `pl_${kunci}_bawah_0`)
+    const label = this.add
+      .text(0, 0, this.namaPemain.get(id) ?? '…', GAYA_LABEL)
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTH_UI)
+    const o = {
+      id, sprite, label, kunci,
+      x: undefined, y: undefined, tx: 0, ty: 0,
+      a: 'bawah', f: false, g: false, serangSampai: 0, terakhir: 0,
+    }
+    this.pemainLain.set(id, o)
+    return o
+  }
+
+  pemainLainPosisi(id, d) {
+    if (!this.pemainLain || this.peta !== 'server') return
+    const o = this.pemainLain.get(id) ?? this.buatPemainLain(id)
+    o.tx = d.x
+    o.ty = d.y
+    o.a = d.a
+    o.f = d.f
+    o.g = d.g
+    o.terakhir = this.time.now
+    if (o.x === undefined) {
+      o.x = d.x
+      o.y = d.y
+    }
+    if (d.s) o.serangSampai = this.time.now + 260
+  }
+
+  pemainLainNama(id, nama) {
+    if (!this.pemainLain) return
+    this.namaPemain.set(id, nama)
+    this.pemainLain.get(id)?.label.setText(nama)
+  }
+
+  pemainLainKeluar(id) {
+    const o = this.pemainLain?.get(id)
+    if (!o) return
+    o.sprite.destroy()
+    o.label.destroy()
+    this.pemainLain.delete(id)
+    const g = this.gelembung.get(id)
+    if (g) {
+      g.teks.destroy()
+      this.gelembung.delete(id)
+    }
+  }
+
+  hapusSemuaPemainLain() {
+    if (!this.pemainLain) return
+    for (const id of [...this.pemainLain.keys()]) this.pemainLainKeluar(id)
+  }
+
+  sinkronPemainLain(daftar) {
+    if (!this.pemainLain || this.peta !== 'server') return
+    for (const p of daftar) {
+      if (p.nama) this.namaPemain.set(p.id, p.nama)
+      this.pemainLainPosisi(p.id, p)
+    }
+  }
+
+  // Halus: pemain lain bergerak mendekati posisi terakhir yang diterima
+  perbaruiPemainLain(dt) {
+    if (!this.pemainLain || this.pemainLain.size === 0) return
+    const k = 1 - Math.exp(-dt * 7)
+    for (const o of this.pemainLain.values()) {
+      if (o.x === undefined) continue
+      o.x += (o.tx - o.x) * k
+      o.y += (o.ty - o.y) * k
+      const gerak =
+        (o.g && this.time.now - o.terakhir < 1500) || Math.hypot(o.tx - o.x, o.ty - o.y) > 4
+      let kunciTekstur = `pl_${o.kunci}_${o.a}_0`
+      if (this.time.now < o.serangSampai) {
+        kunciTekstur = `pl_${o.kunci}_${o.a}_s`
+      } else if (gerak) {
+        kunciTekstur = `pl_${o.kunci}_${o.a}_${[1, 0, 2, 0][Math.floor(this.time.now / 125) % 4]}`
+      }
+      o.sprite
+        .setTexture(kunciTekstur)
+        .setFlipX(o.a === 'samping' && o.f)
+        .setPosition(o.x, o.y)
+        .setDepth(o.y + 16)
+      o.label.setPosition(o.x, o.y - 20)
+    }
+  }
+
+  // Posisi kita dikirim hanya saat bergerak, berhenti, atau menebas
+  kirimPosisiSaya() {
+    if (this.peta !== 'server' || this.time.now < this.posisiCek) return
+    this.posisiCek = this.time.now + 120
+    const x = Math.round(this.pemain.x)
+    const y = Math.round(this.pemain.y)
+    const lalu = this.posisiLalu
+    const bergerak = !lalu || Math.hypot(x - lalu.x, y - lalu.y) > 1.5
+    if (!(bergerak || this.masihGerak || this.pernahSerang)) return
+    this.game.events.emit('posisi-saya', {
+      x, y, a: this.arah, f: this.pemain.flipX, g: bergerak, s: this.pernahSerang,
+    })
+    this.masihGerak = bergerak
+    this.pernahSerang = false
+    this.posisiLalu = { x, y }
+  }
+
+  // Gelembung ucapan di atas kepala saat ada pesan chat
+  tampilkanGelembung(idPengirim, teks) {
+    if (!this.gelembung || this.peta !== 'server') return
+    const kunci = idPengirim === this.registry.get('idSaya') ? 'saya' : idPengirim
+    if (kunci !== 'saya' && !this.pemainLain.has(kunci)) return
+    const potong = teks.length > 60 ? `${teks.slice(0, 57)}…` : teks
+    let g = this.gelembung.get(kunci)
+    if (!g) {
+      g = {
+        teks: this.add
+          .text(0, 0, '', {
+            fontFamily: 'monospace',
+            fontSize: '11px',
+            color: '#1c1c1c',
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            padding: { x: 5, y: 3 },
+            wordWrap: { width: 150 },
+          })
+          .setOrigin(0.5, 1)
+          .setDepth(DEPTH_UI + 3),
+        sampai: 0,
+      }
+      this.gelembung.set(kunci, g)
+    }
+    g.teks.setText(potong)
+    g.sampai = this.time.now + 5000
+  }
+
+  perbaruiGelembung() {
+    if (!this.gelembung) return
+    for (const [kunci, g] of this.gelembung) {
+      const sumber = kunci === 'saya' ? this.pemain : this.pemainLain.get(kunci)?.sprite
+      if (!sumber || this.time.now > g.sampai) {
+        g.teks.destroy()
+        this.gelembung.delete(kunci)
+        continue
+      }
+      g.teks.setPosition(sumber.x, sumber.y - 34)
+    }
+  }
+
   // ---------- Setiap frame ----------
   update(_waktu, delta) {
     const dt = Math.min(delta, 50) / 1000
@@ -765,6 +935,10 @@ export default class DuniaScene extends Phaser.Scene {
     }
     // Urutan gambar berdasarkan titik kaki, sama seperti objek dunia
     this.pemain.setDepth(this.pemain.y + 16)
+
+    this.kirimPosisiSaya()
+    this.perbaruiPemainLain(dt)
+    this.perbaruiGelembung()
 
     let terdekat = null
     let jarakMin = Infinity

@@ -8,9 +8,15 @@ export default function DaftarPage() {
   const [sandi, setSandi] = useState('')
   const [pesan, setPesan] = useState('')
   const [mengirim, setMengirim] = useState(false)
+  const [setuju, setSetuju] = useState(false)
   const navigate = useNavigate()
 
   async function daftar(e) {
+
+    if (!setuju) {
+      setPesan('Kamu perlu menyetujui Syarat dan Kebijakan Privasi.')
+      return
+    }
     e.preventDefault()
     const nama = username.trim().toLowerCase()
     if (!/^[a-z0-9_]{3,20}$/.test(nama)) {
@@ -59,6 +65,12 @@ export default function DaftarPage() {
           Kata sandi
           <input type="password" value={sandi} onChange={(e) => setSandi(e.target.value)} required />
         </label>
+
+        <label className="centang">
+          <input type="checkbox" checked={setuju} onChange={(e) => setSetuju(e.target.checked)} />
+          <span>Saya setuju dengan <Link to="/syarat">Syarat</Link> dan <Link to="/privasi">Kebijakan Privasi</Link></span>
+        </label>
+
         <div className="aksi">
           <button type="submit" className="tombol utama" disabled={mengirim}>
             {mengirim ? 'Mendaftar…' : 'Daftar'}
