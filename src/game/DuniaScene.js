@@ -124,11 +124,38 @@ export default class DuniaScene extends Phaser.Scene {
       .setDepth(DEPTH_UI + 1)
       .setVisible(false)
 
-    this.input.keyboard.disableGlobalCapture() // jangan memblokir ketikan di kolom input halaman
-    this.kursor = this.input.keyboard.createCursorKeys()
-    this.wasd = this.input.keyboard.addKeys('W,A,S,D')
-    this.tombolE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
-    this.tombolSpasi = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+        // Keyboard dibaca sendiri (bukan lewat plugin keyboard Phaser) supaya tidak ada tombol
+    // yang dibatalkan dan kolom chat tetap bisa dipakai mengetik
+    this.tombolTekan = new Set()
+    this.tekanE = false
+    this.tekanSpasi = false
+    const turun = (e) => {
+      if (this.fokusDiInput() || e.ctrlKey || e.metaKey || e.altKey) return
+      this.tombolTekan.add(e.code)
+      if (e.repeat) return
+      if (e.code === 'KeyE') this.tekanE = true
+      if (e.code === 'Space') this.tekanSpasi = true
+    }
+    const naik = (e) => this.tombolTekan.delete(e.code)
+    const lepasSemua = () => this.tombolTekan.clear()
+    window.addEventListener('keydown', turun)
+    window.addEventListener('keyup', naik)
+    window.addEventListener('blur', lepasSemua)
+    const bersihkan = () => {
+      window.removeEventListener('keydown', turun)
+      window.removeEventListener('keyup', naik)
+      window.removeEventListener('blur', lepasSemua)
+    }
+    this.events.once('shutdown', bersihkan)
+    this.events.once('destroy', bersihkan)
+
+    // Klik atau ketuk = satu tebasan. Phaser menahan perubahan fokus saat klik di kanvas,
+    // jadi fokus kolom chat dilepas di sini.
+    this.input.off('pointerdown')
+    this.input.on('pointerdown', (pointer) => {
+      if (this.fokusDiInput()) document.activeElement.blur()
+      this.serang({ x: pointer.worldX, y: pointer.worldY })
+    })
 
     // Klik atau ketuk = satu tebasan
     this.input.off('pointerdown')
@@ -877,21 +904,32 @@ export default class DuniaScene extends Phaser.Scene {
     }
   }
 
+    fokusDiInput() {
+    const el = document.activeElement
+    return (
+      Boolean(el) && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable)
+    )
+  }
   // ---------- Setiap frame ----------
-  update(_waktu, delta) {
+    update(_waktu, delta) {
     const dt = Math.min(delta, 50) / 1000
     const kontrol = this.registry.get('kontrol') ?? {}
     const mati = Boolean(this.registry.get('mati'))
     if (this.perbaruiMati(mati)) return
 
     const terkunci = Boolean(this.registry.get('terkunci')) || mati
-    const el = document.activeElement
-    const fokusInput = Boolean(el) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)
-    const boleh = !terkunci && !fokusInput
+    const boleh = !terkunci && !this.fokusDiInput()
+    const tombol = this.tombolTekan
+
+    // E dan Spasi hanya berlaku sekali per tekan
+    const tekanE = this.tekanE
+    const tekanSpasi = this.tekanSpasi
+    this.tekanE = false
+    this.tekanSpasi = false
 
     this.perbaruiMusuh(dt)
 
-    if (boleh && (Phaser.Input.Keyboard.JustDown(this.tombolSpasi) || kontrol.serang)) this.serang(null)
+    if (boleh && (tekanSpasi || kontrol.serang)) this.serang(null)
     if (kontrol.serang) kontrol.serang = false
 
     if (this.menyerang || !boleh) {
@@ -902,10 +940,10 @@ export default class DuniaScene extends Phaser.Scene {
     } else {
       let dx = 0
       let dy = 0
-      if (this.kursor.left.isDown || this.wasd.A.isDown || kontrol.kiri) dx -= 1
-      if (this.kursor.right.isDown || this.wasd.D.isDown || kontrol.kanan) dx += 1
-      if (this.kursor.up.isDown || this.wasd.W.isDown || kontrol.atas) dy -= 1
-      if (this.kursor.down.isDown || this.wasd.S.isDown || kontrol.bawah) dy += 1
+      if (tombol.has('ArrowLeft') || tombol.has('KeyA') || kontrol.kiri) dx -= 1
+      if (tombol.has('ArrowRight') || tombol.has('KeyD') || kontrol.kanan) dx += 1
+      if (tombol.has('ArrowUp') || tombol.has('KeyW') || kontrol.atas) dy -= 1
+      if (tombol.has('ArrowDown') || tombol.has('KeyS') || kontrol.bawah) dy += 1
 
       if (dx !== 0 || dy !== 0) {
         const panjang = Math.hypot(dx, dy)
@@ -935,7 +973,6 @@ export default class DuniaScene extends Phaser.Scene {
     }
     // Urutan gambar berdasarkan titik kaki, sama seperti objek dunia
     this.pemain.setDepth(this.pemain.y + 16)
-
     this.kirimPosisiSaya()
     this.perbaruiPemainLain(dt)
     this.perbaruiGelembung()
@@ -960,7 +997,7 @@ export default class DuniaScene extends Phaser.Scene {
       this.petunjuk.setVisible(false)
     }
 
-    const tekan = (boleh && Phaser.Input.Keyboard.JustDown(this.tombolE)) || kontrol.aksi
+    const tekan = (boleh && tekanE) || kontrol.aksi
     if (kontrol.aksi) kontrol.aksi = false
     if (tekan && terdekat && boleh) this.jalankanAksi(terdekat)
   }

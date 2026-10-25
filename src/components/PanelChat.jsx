@@ -24,10 +24,14 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
     return () => window.removeEventListener('keydown', tekanEnter)
   }, [])
 
-  async function kirim(e) {
+    async function kirim(e) {
     e.preventDefault()
     const isi = teks.trim()
-    if (!isi || mengirim) return
+    if (!isi) {
+      kolom.current?.blur() // Enter pada kolom kosong: kembali bermain
+      return
+    }
+    if (mengirim) return
     setMengirim(true)
     const g = await onKirim(isi)
     setMengirim(false)
@@ -36,6 +40,7 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
     } else {
       setGalat('')
       setTeks('')
+      kolom.current?.blur() // pesan terkirim: kendali kembali ke permainan
     }
   }
 
@@ -61,7 +66,7 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
           type="text"
           maxLength={300}
           value={teks}
-          placeholder="Tulis pesan (Enter untuk mengetik)"
+          placeholder="Enter: ketik / kirim · Esc: kembali bermain"
           aria-label="Tulis pesan chat"
           onChange={(e) => setTeks(e.target.value)}
           onKeyDown={(e) => {
