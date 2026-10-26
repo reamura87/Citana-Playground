@@ -450,14 +450,43 @@ export default function GamePage() {
           </div>
         )}
 
-        <div className="game-bingkai">
-          <div ref={wadah} className="game-kanvas" />
-          {sisaMati && (
-            <div className="game-mati" role="alert">
-              <strong>Kamu gugur</strong>
-              <span>Hidup kembali di desa dalam {sisaMati}</span>
-            </div>
-          )}
+                <div className="game-tata">
+          <div className="game-bingkai">
+            <div ref={wadah} className="game-kanvas" />
+            {sisaMati && (
+              <div className="game-mati" role="alert">
+                <strong>Kamu gugur</strong>
+                <span>Hidup kembali di desa dalam {sisaMati}</span>
+              </div>
+            )}
+          </div>
+
+          <aside className="game-samping" aria-label="Chat">
+            {peta !== 'server' ? (
+              <div className="game-chat">
+                <p className="redup kecil">
+                  Chat dan pemain lain hanya ada di kerajaan (dunia bersama). Rumah pribadi hanya milikmu.
+                </p>
+              </div>
+            ) : chatDiizinkan ? (
+              <PanelChat
+                info={
+                  teksMp(statusMp, dunia ? mpDiizinkan : true, afk) +
+                  (import.meta.env.DEV && userId ? ` · id ${userId.slice(0, 6)}` : '')
+                }
+                pesan={chat.pesan}
+                kesalahan={chat.kesalahan}
+                onKirim={chat.kirim}
+                admin={profil?.peran === 'admin'}
+                onHapus={chat.hapus}
+                onBisu={chat.bisu}
+              />
+            ) : (
+              <div className="game-chat">
+                <p className="redup kecil">{dunia ? 'Chat sedang dinonaktifkan.' : 'Memuat chat…'}</p>
+              </div>
+            )}
+          </aside>
         </div>
 
         <div className="aksi">
@@ -468,25 +497,7 @@ export default function GamePage() {
           <span className="redup kecil">Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E</span>
         </div>
 
-                {peta === 'server' && (
-          <>
-            <p className="redup kecil" role="status">
-              {teksMp(statusMp, dunia ? mpDiizinkan : true, afk)}
-            </p>
-            {chatDiizinkan ? (
-              <PanelChat
-                pesan={chat.pesan}
-                kesalahan={chat.kesalahan}
-                onKirim={chat.kirim}
-                admin={profil?.peran === 'admin'}
-                onHapus={chat.hapus}
-                onBisu={chat.bisu}
-              />
-            ) : (
-              dunia && <p className="redup kecil">Chat sedang dinonaktifkan.</p>
-            )}
-          </>
-        )}
+        
 
         {catatan && <p className="game-catatan" role="status">{catatan}</p>}
 

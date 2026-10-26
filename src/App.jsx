@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
@@ -25,6 +25,7 @@ import PassfotoPage from './pages/PasfotoPage'
 import GamePage from './pages/GamePage'
 import { Lapor, Privasi, Syarat } from './pages/halamanhukum'
 
+
 function App() {
   const [tema, setTema] = useState(
     () => document.documentElement.dataset.theme ?? 'light',
@@ -35,13 +36,15 @@ function App() {
     localStorage.setItem('tema', tema)
   }, [tema])
 
+    const { pathname } = useLocation()
+
   return (
     <>
       <Header
         tema={tema}
         onGantiTema={() => setTema(tema === 'dark' ? 'light' : 'dark')}
       />
-      <main>
+      <main className={pathname.startsWith('/game') ? 'lebar' : undefined}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/satua" element={<SatuaList />} />

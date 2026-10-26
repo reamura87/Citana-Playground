@@ -4,6 +4,17 @@ const JUMLAH_RUANG = 3
 const BATAS_PESAN_PER_MENIT = 160
 const ARAH = ['bawah', 'atas', 'samping']
 
+const log = (...args) => {
+  if (import.meta.env.DEV) console.info('[multiplayer]', ...args)
+}
+
+// supabase-js memakai ulang kanal ber-nama sama sampai benar-benar tertutup.
+// Tutup yang lama dulu supaya penyambungan ulang tidak memakai kanal yang usang.
+async function bersihkan(topik) {
+  const lama = supabase.getChannels().filter((c) => c.topic === `realtime:${topik}`)
+  await Promise.all(lama.map((c) => supabase.removeChannel(c)))
+}
+
 export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onStatus }) {
   let kanal = null
   let ruang = 0
@@ -113,9 +124,13 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
     lapor()
   }
 
-  function cobaRuang(n) {
+  async function cobaRuang(n) {
+    const topik = `dunia:kerajaan:${n}`
+    await bersihkan(topik)
+    if (dihentikan) return 'berhenti'
+
     return new Promise((selesai) => {
-      const ch = supabase.channel(`dunia:kerajaan:${n}`, {
+      const ch = supabase.channel(topik, {
         config: { broadcast: { self: false }, presence: { key: userId } },
       })
       let putus = false
@@ -127,6 +142,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
       }
       const timer = setTimeout(() => {
         if (putus) return
+        log(`ruang ${n}: waktu habis`)
         supabase.removeChannel(ch)
         akhiri('gagal')
       }, 9000)
@@ -135,6 +151,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
         .on('broadcast', { event: 'minta' }, () => kirimSekarang())
         .on('presence', { event: 'sync' }, () => {
           const ids = Object.keys(ch.presenceState())
+          log(`ruang ${n}: sinkron kehadiran`, ids.length, 'pemain')
           if (!putus) {
             if (ids.length > maks) {
               supabase.removeChannel(ch)
@@ -147,7 +164,8 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
           }
           if (kanal === ch) sinkron(ids)
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
+          log(`ruang ${n}: status`, status, err ?? '')
           if (status === 'SUBSCRIBED') ch.track({ t: Date.now() })
           if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !putus) {
             supabase.removeChannel(ch)
@@ -161,28 +179,34 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
   }
 
   async function sambung() {
-    for (let n = 1; n <= JUMLAH_RUANG; n += 1) {
-      if (dihentikan) return
-      const hasil = await cobaRuang(n)
-      if (dihentikan) {
-        if (kanal) supabase.removeChannel(kanal)
-        kanal = null
-        return
-      }
-      if (hasil === 'ok') {
-        // Minta posisi pemain yang sedang diam, dan umumkan posisi sendiri
-        if (hadir.size > 0) {
-          kirimPesan('minta', {})
-          kirimSekarang()
+    try {
+      for (let n = 1; n <= JUMLAH_RUANG; n += 1) {
+        if (dihentikan) return
+        const hasil = await cobaRuang(n)
+        log(`ruang ${n}: hasil`, hasil)
+        if (dihentikan || hasil === 'berhenti') {
+          if (kanal) supabase.removeChannel(kanal)
+          kanal = null
+          return
         }
-        return
+        if (hasil === 'ok') {
+          // Minta posisi pemain yang sedang diam, dan umumkan posisi sendiri
+          if (hadir.size > 0) {
+            kirimPesan('minta', {})
+            kirimSekarang()
+          }
+          return
+        }
+        if (hasil === 'gagal') {
+          onStatus?.({ jenis: 'gagal' })
+          return
+        }
       }
-      if (hasil === 'gagal') {
-        onStatus?.({ jenis: 'gagal' })
-        return
-      }
+      onStatus?.({ jenis: 'penuh' })
+    } catch (err) {
+      log('galat saat menyambung', err)
+      onStatus?.({ jenis: 'gagal' })
     }
-    onStatus?.({ jenis: 'penuh' })
   }
 
   function hentikan() {

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, onBisu }) {
+function warnaNama(id) {
+  let h = 0
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0
+  return `hsl(${h % 360} 60% 50%)`
+}
+
+export default function PanelChat({ info, pesan, kesalahan, onKirim, admin, onHapus, onBisu }) {
   const [teks, setTeks] = useState('')
   const [galat, setGalat] = useState('')
   const [mengirim, setMengirim] = useState(false)
@@ -24,7 +30,7 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
     return () => window.removeEventListener('keydown', tekanEnter)
   }, [])
 
-    async function kirim(e) {
+  async function kirim(e) {
     e.preventDefault()
     const isi = teks.trim()
     if (!isi) {
@@ -46,11 +52,19 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
 
   return (
     <section className="game-chat" aria-label="Chat global">
+      <header className="game-chat-kepala">
+        <strong>Chat global</strong>
+        <small className="redup">{info}</small>
+      </header>
+
       <ul className="game-chat-daftar" ref={daftar} aria-live="polite">
         {pesan.length === 0 && <li className="redup kecil">Belum ada pesan.</li>}
         {pesan.map((m) => (
           <li key={m.id}>
-            <strong>{m.penulis_nama}</strong>: {m.isi}
+            <span className="game-chat-nama" style={{ color: warnaNama(m.penulis_id) }}>
+              {m.penulis_nama}
+            </span>{' '}
+            {m.isi}
             {admin && (
               <span className="game-chat-admin">
                 <button type="button" className="tautan-tombol" onClick={() => onHapus(m.id)}>Hapus</button>
@@ -60,6 +74,9 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
           </li>
         ))}
       </ul>
+
+      {(galat || kesalahan) && <p className="redup kecil" role="alert">{galat || kesalahan}</p>}
+
       <form className="game-chat-form" onSubmit={kirim}>
         <input
           ref={kolom}
@@ -75,8 +92,7 @@ export default function PanelChat({ pesan, kesalahan, onKirim, admin, onHapus, o
         />
         <button type="submit" className="tombol kecil" disabled={mengirim}>Kirim</button>
       </form>
-      {(galat || kesalahan) && <p className="redup kecil" role="alert">{galat || kesalahan}</p>}
-      <small className="redup">
+      <small className="redup game-chat-kaki">
         Tautan dan konten terlarang ditolak otomatis. <Link to="/lapor">Lapor pelanggaran</Link>
       </small>
     </section>

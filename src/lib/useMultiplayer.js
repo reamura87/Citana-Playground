@@ -10,6 +10,8 @@ export function useAktivitas() {
   const [afk, setAfk] = useState(false)
 
   useEffect(() => {
+    // Saat pengembangan (npm run dev), koneksi tidak dijeda supaya dua jendela uji tetap saling melihat
+    if (import.meta.env.DEV) return
     let terakhir = Date.now()
     const aktif = () => {
       terakhir = Date.now()
@@ -30,6 +32,7 @@ export function useAktivitas() {
     }
   }, [])
 
+  if (import.meta.env.DEV) return { tampak: true, afk: false }
   return { tampak, afk }
 }
 
