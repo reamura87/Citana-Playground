@@ -9,7 +9,6 @@ const log = (...args) => {
 }
 
 // supabase-js memakai ulang kanal ber-nama sama sampai benar-benar tertutup.
-// Tutup yang lama dulu supaya penyambungan ulang tidak memakai kanal yang usang.
 async function bersihkan(topik) {
   const lama = supabase.getChannels().filter((c) => c.topic === `realtime:${topik}`)
   await Promise.all(lama.map((c) => supabase.removeChannel(c)))
@@ -25,6 +24,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
   let terakhirKirim = 0
   let timerKirim = null
   let timerNama = null
+  let detak = null
   let antreNama = new Set()
   let kiriman = []
   const posisi = new Map()
@@ -195,6 +195,10 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
             kirimPesan('minta', {})
             kirimSekarang()
           }
+          // Detak ulang: pemain yang diam tetap terlihat walau satu pesan sempat terlewat
+          detak = setInterval(() => {
+            if (!dihentikan && hadir.size > 0 && performance.now() - terakhirKirim > 15000) kirimSekarang()
+          }, 10000)
           return
         }
         if (hasil === 'gagal') {
@@ -213,6 +217,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
     dihentikan = true
     clearTimeout(timerKirim)
     clearTimeout(timerNama)
+    clearInterval(detak)
     if (kanal) supabase.removeChannel(kanal)
     kanal = null
     hadir = new Set()

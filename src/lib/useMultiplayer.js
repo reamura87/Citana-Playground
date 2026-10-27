@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buatMultiplayer } from '../game/multiplayer'
-import { ambilRiwayatChat, bisukan, hapusChat, kirimChat, langgananChat } from './gameAPI'
+import {
+  ambilHadiah,
+  ambilRiwayatChat,
+  bisukan,
+  hapusChat,
+  kirimChat,
+  langgananChat,
+  prosesHadiah,
+} from './gameAPI'
 
 const AFK_MS = 120000
 
-// Tab tidak terlihat atau pemain diam 2 menit: koneksi dijeda untuk menghemat pesan
+// Tab tidak terlihat atau pemain diam 2 menit: koneksi dijeda untuk menghemat pesan.
+// Saat pengembangan (npm run dev) tidak dijeda supaya dua jendela uji tetap saling melihat.
 export function useAktivitas() {
   const [tampak, setTampak] = useState(() => document.visibilityState === 'visible')
   const [afk, setAfk] = useState(false)
 
   useEffect(() => {
-    // Saat pengembangan (npm run dev), koneksi tidak dijeda supaya dua jendela uji tetap saling melihat
     if (import.meta.env.DEV) return
     let terakhir = Date.now()
     const aktif = () => {
@@ -39,6 +47,7 @@ export function useAktivitas() {
 export function useMultiplayer({ userId, aktif, maks, gameRef }) {
   const [status, setStatus] = useState({ jenis: 'putus' })
   const mpRef = useRef(null)
+  const posisiRef = useRef(null)
 
   useEffect(() => {
     if (!aktif || !userId) return
@@ -55,6 +64,8 @@ export function useMultiplayer({ userId, aktif, maks, gameRef }) {
       onStatus: setStatus,
     })
     mpRef.current = mp
+    // Posisi terakhir yang diketahui scene, supaya pemain yang diam tetap bisa diumumkan
+    if (posisiRef.current) mp.kirimPosisi(posisiRef.current)
     mp.sambung()
     return () => {
       mp.hentikan()
@@ -64,7 +75,10 @@ export function useMultiplayer({ userId, aktif, maks, gameRef }) {
     }
   }, [aktif, userId, maks, gameRef])
 
-  const kirimPosisi = useCallback((data) => mpRef.current?.kirimPosisi(data), [])
+  const kirimPosisi = useCallback((data) => {
+    posisiRef.current = data
+    mpRef.current?.kirimPosisi(data)
+  }, [])
 
   // Mengisi ulang pemain lain ke scene (setelah scene dimulai ulang)
   const sinkron = useCallback(() => {
@@ -76,10 +90,11 @@ export function useMultiplayer({ userId, aktif, maks, gameRef }) {
 }
 
 const gabung = (a, b) =>
-  [...new Map([...a, ...b].map((m) => [m.id, m])).values()].sort((x, y) => x.id - y.id).slice(-50)
+  [...new Map([...a, ...b].map((m) => [m.id, m])).values()].sort((x, y) => x.id - y.id).slice(-80)
 
-export function useChat({ aktif, gameRef }) {
+export function useChat({ aktif, gameRef, onStatus }) {
   const [pesan, setPesan] = useState([])
+  const [hadiah, setHadiah] = useState({})
   const [kesalahan, setKesalahan] = useState('')
 
   useEffect(() => {
@@ -92,15 +107,27 @@ export function useChat({ aktif, gameRef }) {
       .catch(() => {
         if (!batal) setKesalahan('Gagal memuat riwayat chat.')
       })
+    ambilHadiah()
+      .then((baris) => {
+        if (!batal) setHadiah((h) => ({ ...h, ...Object.fromEntries(baris.map((r) => [r.id, r])) }))
+      })
+      .catch(() => {
+        // abaikan, status hadiah diperbarui lewat Realtime
+      })
     const lepas = langgananChat({
       onBaru: (m) => {
         if (batal) return
         setPesan((l) => gabung(l, [m]))
-        const s = gameRef.current?.scene.getScene('dunia')
-        if (s && s.scene.isActive()) s.tampilkanGelembung(m.penulis_id, m.isi)
+        if (!m.penerima_id && m.jenis === 'teks') {
+          const s = gameRef.current?.scene.getScene('dunia')
+          if (s && s.scene.isActive()) s.tampilkanGelembung(m.penulis_id, m.isi)
+        }
       },
       onHapus: (id) => {
         if (!batal) setPesan((l) => l.filter((m) => m.id !== id))
+      },
+      onHadiah: (baris) => {
+        if (!batal && baris) setHadiah((h) => ({ ...h, [baris.id]: baris }))
       },
     })
     return () => {
@@ -109,15 +136,44 @@ export function useChat({ aktif, gameRef }) {
     }
   }, [aktif, gameRef])
 
-  // Mengembalikan pesan galat, atau null jika berhasil
-  const kirim = useCallback(async (teks) => {
-    try {
-      await kirimChat(teks)
-      return null
-    } catch (err) {
-      return err.message
-    }
-  }, [])
+  // Mengembalikan pesan galat, atau null jika berhasil.
+  // Mendukung: "@nama pesan" (bisik), "/ambil 12", dan "/tolak 12".
+  const kirim = useCallback(
+    async (teks) => {
+      try {
+        const perintah = teks.match(/^\/(ambil|tolak)\s+#?(\d+)\s*$/i)
+        if (perintah) {
+          const h = await prosesHadiah(Number(perintah[2]), perintah[1].toLowerCase())
+          if (h.status) onStatus?.(h.status)
+          return h.ok ? null : h.pesan
+        }
+        const bisik = teks.match(/^@(\S+)\s+([\s\S]+)$/)
+        if (bisik) {
+          await kirimChat(bisik[2], bisik[1])
+          return null
+        }
+        if (/^@\S*\s*$/.test(teks)) return 'Tulis pesan setelah @nama, misalnya: @nama halo'
+        await kirimChat(teks)
+        return null
+      } catch (err) {
+        return err.message
+      }
+    },
+    [onStatus],
+  )
+
+  const aksiHadiah = useCallback(
+    async (id, aksi) => {
+      try {
+        const h = await prosesHadiah(id, aksi)
+        if (h.status) onStatus?.(h.status)
+        return h.ok ? null : h.pesan
+      } catch (err) {
+        return err.message
+      }
+    },
+    [onStatus],
+  )
 
   const hapus = useCallback(async (id) => {
     try {
@@ -136,5 +192,5 @@ export function useChat({ aktif, gameRef }) {
     }
   }, [])
 
-  return { pesan, kesalahan, kirim, hapus, bisu }
+  return { pesan, hadiah, kesalahan, kirim, aksiHadiah, hapus, bisu }
 }
