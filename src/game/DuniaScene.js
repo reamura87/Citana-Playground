@@ -42,6 +42,8 @@ const GAYA_LABEL = {
   backgroundColor: 'rgba(0,0,0,0.55)',
   padding: { x: 4, y: 2 },
 }
+const GAYA_NAMA_SAYA = { ...GAYA_LABEL, color: '#ffe38a' }
+const RADIUS_HADIAH = 140
 
 // aggro: jarak mulai mengejar, lepas: jarak berhenti mengejar, jangkauan: jarak memukul
 const INFO_MUSUH = {
@@ -85,6 +87,8 @@ export default class DuniaScene extends Phaser.Scene {
     this.posisiLalu = null
     this.masihGerak = false
     this.pernahSerang = false
+    this.laporBerikut = 0
+    this.kunciSekitar = ''
   }
 
   create() {
@@ -115,7 +119,13 @@ export default class DuniaScene extends Phaser.Scene {
     if (def.label) def.label.forEach((l) => this.labelStatis(l.x, l.y, l.teks))
     this.tambahDekorasi(def)
 
-    this.pemain = this.add.sprite(def.mulai.x, def.mulai.y, 'pemain_bawah_0')
+        // Titik lahir sedikit berbeda untuk tiap pemain supaya tidak bertumpuk
+    const awal = this.titikMulai(def)
+    this.pemain = this.add.sprite(awal.x, awal.y, 'pemain_bawah_0')
+    this.labelSaya = this.add
+      .text(0, 0, this.registry.get('status')?.pemain.nama ?? '', GAYA_NAMA_SAYA)
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTH_UI)
     this.cameras.main.startFollow(this.pemain, true, 0.12, 0.12)
 
     this.petunjuk = this.add
@@ -173,6 +183,7 @@ export default class DuniaScene extends Phaser.Scene {
 
     this.terapkanStatus()
     this.terapkanDunia()
+    this.game.events.emit('pemain-sekitar', [])
     this.game.events.emit('peta', this.peta)
   }
 
@@ -799,6 +810,7 @@ export default class DuniaScene extends Phaser.Scene {
     const o = this.pemainLain?.get(id)
     if (!o) return
     o.sprite.destroy()
+    o.cincin?.destroy()
     o.label.destroy()
     this.pemainLain.delete(id)
     const g = this.gelembung.get(id)
@@ -821,9 +833,9 @@ export default class DuniaScene extends Phaser.Scene {
     }
   }
 
-  // Halus: pemain lain bergerak mendekati posisi terakhir yang diterima
+    // Halus: pemain lain bergerak mendekati posisi terakhir yang diterima
   perbaruiPemainLain(dt) {
-    if (!this.pemainLain || this.pemainLain.size === 0) return
+    if (!this.pemainLain) return
     const k = 1 - Math.exp(-dt * 7)
     for (const o of this.pemainLain.values()) {
       if (o.x === undefined) continue
@@ -843,7 +855,41 @@ export default class DuniaScene extends Phaser.Scene {
         .setPosition(o.x, o.y)
         .setDepth(o.y + 16)
       o.label.setPosition(o.x, o.y - 20)
+
+      const dekat = Phaser.Math.Distance.Between(this.pemain.x, this.pemain.y, o.x, o.y) <= RADIUS_HADIAH
+      if (dekat && !o.cincin) o.cincin = this.add.ellipse(0, 0, 40, 16).setStrokeStyle(2, 0xffe38a, 0.9)
+      if (o.cincin) o.cincin.setVisible(dekat).setPosition(o.x, o.y + 16).setDepth(o.y + 15)
     }
+    this.laporSekitar()
+  }
+
+  // Memberi tahu panel chat siapa saja yang ada di sekitar (dipakai untuk bisik dan hadiah)
+  laporSekitar() {
+    if (this.time.now < this.laporBerikut) return
+    this.laporBerikut = this.time.now + 400
+    const kamera = this.cameras.main.worldView
+    const mata = ['timur', 'tenggara', 'selatan', 'barat daya', 'barat', 'barat laut', 'utara', 'timur laut']
+    const daftar = []
+    for (const o of this.pemainLain.values()) {
+      if (o.x === undefined) continue
+      const dx = o.x - this.pemain.x
+      const dy = o.y - this.pemain.y
+      const jarak = Math.hypot(dx, dy)
+      const sudut = (Math.atan2(dy, dx) * 180) / Math.PI
+      daftar.push({
+        id: o.id,
+        nama: this.namaPemain.get(o.id) ?? '…',
+        jarak: Math.round(jarak / 10) * 10,
+        dekat: jarak <= RADIUS_HADIAH,
+        arah: mata[Math.round(((sudut + 360) % 360) / 45) % 8],
+        terlihat: kamera.contains(o.x, o.y),
+      })
+    }
+    daftar.sort((a, b) => a.jarak - b.jarak)
+    const kunci = JSON.stringify(daftar)
+    if (kunci === this.kunciSekitar) return
+    this.kunciSekitar = kunci
+    this.game.events.emit('pemain-sekitar', daftar)
   }
 
   // Posisi kita dikirim hanya saat bergerak, berhenti, atau menebas
@@ -902,6 +948,20 @@ export default class DuniaScene extends Phaser.Scene {
       }
       g.teks.setPosition(sumber.x, sumber.y - 34)
     }
+  }
+
+    titikMulai(def) {
+      if (this.peta !== 'server') return def.mulai
+      let h = 0
+      for (const c of String(this.registry.get('idSaya') ?? 'x')) h = (h * 31 + c.charCodeAt(0)) >>> 0
+      for (let i = 0; i < 10; i += 1) {
+        const sudut = (((h + i * 37) % 360) * Math.PI) / 180
+        const jari = 36 + (((h >> 4) + i * 13) % 50)
+        const x = def.mulai.x + Math.cos(sudut) * jari
+        const y = def.mulai.y + Math.sin(sudut) * jari
+        if (!this.menabrak(x, y)) return { x, y }
+      }
+      return def.mulai
   }
 
     fokusDiInput() {
@@ -973,6 +1033,7 @@ export default class DuniaScene extends Phaser.Scene {
     }
     // Urutan gambar berdasarkan titik kaki, sama seperti objek dunia
     this.pemain.setDepth(this.pemain.y + 16)
+    this.labelSaya.setPosition(this.pemain.x, this.pemain.y - 20)
     this.kirimPosisiSaya()
     this.perbaruiPemainLain(dt)
     this.perbaruiGelembung()

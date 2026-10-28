@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ambilDunia,
@@ -13,6 +13,7 @@ import {
   tambahPoin,
   tanam,
   upgradeRumah,
+  kirimHadiah,
 } from '../lib/gameAPI'
 
 import PanelChat from '../components/PanelChat'
@@ -67,6 +68,8 @@ export default function GamePage() {
   const [sibuk, setSibuk] = useState(false)
   const [catatan, setCatatan] = useState('')
   const [target, setTarget] = useState(null)
+  const [sekitar, setSekitar] = useState([])
+  const adaRekan = sekitar.length > 0
   const [sekarang, setSekarang] = useState(() => Date.now())
 
   const wadah = useRef(null)
@@ -98,6 +101,7 @@ export default function GamePage() {
   const chat = useChat({
     aktif: tahap === 'siap' && peta === 'server' && chatDiizinkan && tampak,
     gameRef,
+    onStatus: terapkan,
   })
   const mpApi = useRef({})
 
@@ -175,7 +179,7 @@ export default function GamePage() {
     return () => window.removeEventListener('keydown', cegah)
   }, [])
 
-  // Ambil keadaan dunia (musuh bersama) tiap 8 detik saat di dunia bersama
+    // Ambil keadaan dunia (musuh bersama): tiap 3 detik jika ada pemain lain di ruang, selain itu 8 detik
   useEffect(() => {
     if (tahap !== 'siap' || peta !== 'server') return
     let batal = false
@@ -190,12 +194,12 @@ export default function GamePage() {
         })
     }
     muat()
-    const t = setInterval(muat, 8000)
+    const t = setInterval(muat, adaRekan ? 3000 : 8000)
     return () => {
       batal = true
       clearInterval(t)
     }
-  }, [tahap, peta])
+  }, [tahap, peta, adaRekan])
 
   /  // Jalankan Phaser (dimuat malas)
   useEffect(() => {
@@ -211,6 +215,7 @@ export default function GamePage() {
       game.events.on('serang', (id) => serangRef.current?.(id))
       game.events.on('diserang', (id) => diserangRef.current?.(id))
       game.events.on('posisi-saya', (d) => mpApi.current.kirimPosisi?.(d))
+      game.events.on('pemain-sekitar', (d) => setSekitar(d))
       game.events.on('peta', (nama) => {
         setPeta(nama)
         // Beri waktu scene selesai dibuat sebelum pemain lain diisi ulang
@@ -475,9 +480,14 @@ export default function GamePage() {
                   (import.meta.env.DEV && userId ? ` · id ${userId.slice(0, 6)}` : '')
                 }
                 pesan={chat.pesan}
+                hadiah={chat.hadiah}
                 kesalahan={chat.kesalahan}
-                onKirim={chat.kirim}
+                userId={userId}
+                katalog={katalog}
+                sekitar={sekitar}
                 admin={profil?.peran === 'admin'}
+                onKirim={chat.kirim}
+                onAksiHadiah={chat.aksiHadiah}
                 onHapus={chat.hapus}
                 onBisu={chat.bisu}
               />
@@ -539,7 +549,14 @@ export default function GamePage() {
                 status={status}
                 katalog={katalog}
                 sibuk={sibuk}
+                sekitar={sekitar}
                 onPakai={(id) => jalankan(() => pakai(id))}
+                onHadiah={(penerima, item, jumlah) =>
+                  jalankan(
+                    () => kirimHadiah(penerima, item, jumlah),
+                    'Hadiah terkirim. Penerima mengambilnya lewat chat pribadi (berlaku 15 menit).',
+                  )
+                }
               />
             )}
 
@@ -594,7 +611,23 @@ function dipakai(status, item) {
   return status.pemain.senjata?.id === item.id || status.pemain.armor?.id === item.id
 }
 
-function PanelInventaris({ status, katalog, sibuk, onPakai }) {
+const KATEGORI_HADIAH = ['bibit', 'panen', 'ramuan', 'senjata', 'armor']
+
+function PanelInventaris({ status, katalog, sibuk, sekitar, onPakai, onHadiah }) {
+  const [buka, setBuka] = useState(null)
+  const [pilihan, setPilihan] = useState('')
+  const [jumlah, setJumlah] = useState(1)
+  const dekat = sekitar.filter((s) => s.dekat)
+  const penerima = dekat.some((s) => s.id === pilihan) ? pilihan : (dekat[0]?.id ?? '')
+  const terdekat = sekitar[0]
+
+  async function kirim(i, perlengkapan) {
+    const n = perlengkapan ? 1 : Math.min(i.jumlah, Math.max(1, Number(jumlah) || 1))
+    await onHadiah(penerima, i.item_id, n)
+    setBuka(null)
+    setJumlah(1)
+  }
+
   return (
     <>
       <h2>Inventaris</h2>
@@ -604,26 +637,82 @@ function PanelInventaris({ status, katalog, sibuk, onPakai }) {
           const item = katalog.item.find((k) => k.id === i.item_id)
           const bisaPakai = item && ['senjata', 'armor', 'ramuan'].includes(item.kategori)
           const sedangDipakai = item && dipakai(status, item)
+          const bisaHadiah = item && KATEGORI_HADIAH.includes(item.kategori) && !sedangDipakai
+          const perlengkapan = item && ['senjata', 'armor'].includes(item.kategori)
           return (
-            <li key={i.item_id}>
-              <span>
-                {item?.nama ?? i.item_id} × {i.jumlah}
-                {item?.attack ? <small className="redup"> · +{item.attack} ATK</small> : null}
-                {item?.defense ? <small className="redup"> · +{item.defense} DEF</small> : null}
-              </span>
-              {sedangDipakai ? (
-                <small className="redup">Dipakai</small>
-              ) : (
-                bisaPakai && (
-                  <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakai(i.item_id)}>
-                    Pakai
+            <Fragment key={i.item_id}>
+              <li>
+                <span>
+                  {item?.nama ?? i.item_id} × {i.jumlah}
+                  {item?.attack ? <small className="redup"> · +{item.attack} ATK</small> : null}
+                  {item?.defense ? <small className="redup"> · +{item.defense} DEF</small> : null}
+                </span>
+                <span className="aksi">
+                  {sedangDipakai ? (
+                    <small className="redup">Dipakai</small>
+                  ) : (
+                    bisaPakai && (
+                      <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakai(i.item_id)}>
+                        Pakai
+                      </button>
+                    )
+                  )}
+                  {bisaHadiah && (
+                    <button
+                      type="button"
+                      className="tombol kecil"
+                      disabled={sibuk || dekat.length === 0}
+                      title={dekat.length === 0 ? 'Dekati pemain lain dulu' : 'Hadiahkan ke pemain di dekatmu'}
+                      onClick={() => setBuka(buka === i.item_id ? null : i.item_id)}
+                    >
+                      Hadiahkan ke player lain
+                    </button>
+                  )}
+                </span>
+              </li>
+              {buka === i.item_id && bisaHadiah && (
+                <li className="game-bentuk-hadiah">
+                  <label>
+                    Untuk{' '}
+                    <select value={penerima} onChange={(e) => setPilihan(e.target.value)}>
+                      {dekat.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nama}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {!perlengkapan && (
+                    <label>
+                      Jumlah{' '}
+                      <input
+                        type="number"
+                        min={1}
+                        max={i.jumlah}
+                        value={jumlah}
+                        onChange={(e) => setJumlah(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    className="tombol kecil"
+                    disabled={sibuk || !penerima}
+                    onClick={() => kirim(i, perlengkapan)}
+                  >
+                    Kirim hadiah
                   </button>
-                )
+                </li>
               )}
-            </li>
+            </Fragment>
           )
         })}
       </ul>
+      <p className="redup kecil">
+        {dekat.length > 0
+          ? `Dalam jangkauan hadiah: ${dekat.map((s) => s.nama).join(', ')}.`
+          : `Untuk menghadiahkan item, dekati pemain lain (sekitar 140 px)${
+              terdekat ? `. Pemain terdekat: ${terdekat.nama}, ${terdekat.jarak} px ke arah ${terdekat.arah}` : ''
+            }.`}
+      </p>
     </>
   )
 }

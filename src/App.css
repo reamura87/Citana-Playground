@@ -790,3 +790,64 @@ main.lebar { max-width: 1180px; }
   padding: 6px 10px;
 }
 .game-chat-kaki { padding: 0 12px 8px; }
+
+/* Chat: tab, deretan pemain, kartu hadiah */
+.game-chat-nama { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; cursor: pointer; }
+.game-chat-tab { display: flex; gap: 6px; padding: 6px 10px 0; }
+.game-chat-tab button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.game-chat-tab button[aria-pressed='true'] { color: var(--fg); border-bottom-color: var(--fg); }
+.game-lencana {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 4px;
+  padding: 0 5px;
+  font-size: 0.72rem;
+  color: #ffffff;
+  background: #d94a3d;
+  border-radius: 8px;
+  text-align: center;
+}
+.game-sekitar { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.game-chip {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1px 8px;
+  cursor: pointer;
+}
+.game-chip.dekat { border-color: #e0b030; }
+.game-bisik { color: var(--muted); font-style: italic; }
+.game-sistem { color: var(--muted); font-size: 0.82rem; }
+.game-kartu-hadiah {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.game-bentuk-hadiah { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.game-bentuk-hadiah select,
+.game-bentuk-hadiah input {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+.game-bentuk-hadiah input { width: 64px; }
