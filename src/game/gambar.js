@@ -403,6 +403,68 @@ export function gambarPandaiBesi() {
   return kanvas
 }
 
+const WARNA_BIJIH = [null, '#c47a3a', '#d6dbe3', '#f2c94c', '#6fe4f0', '#8a63d2', '#4fe0b8']
+
+export function gambarBijih(tier, kosong = false) {
+  const { kanvas, px } = buat(16, 14)
+  px('rgba(0,0,0,0.25)', 1, 12, 14, 2)
+  px('#6f7278', 2, 5, 12, 7)
+  px('#8d9096', 3, 3, 9, 3)
+  px('#a9acb2', 4, 3, 4, 1)
+  px('#55585d', 2, 11, 12, 1)
+  if (!kosong) {
+    const w = WARNA_BIJIH[tier]
+    px(w, 4, 6, 2, 2)
+    px(w, 8, 5, 3, 2)
+    px(w, 6, 9, 3, 2)
+    px(w, 11, 8, 2, 2)
+    px('#ffffff', 5, 6, 1, 1)
+    px('#ffffff', 9, 5, 1, 1)
+  }
+  return kanvas
+}
+
+export function gambarTumbuhan(id, kosong = false) {
+  const { kanvas, px } = buat(16, 16)
+  px('rgba(0,0,0,0.2)', 3, 14, 10, 2)
+  if (kosong) {
+    // tinggal tunas kecil sampai tumbuh kembali
+    px('#3f8f3f', 7, 11, 2, 3)
+    px('#5db65d', 5, 10, 2, 2)
+    px('#5db65d', 9, 10, 2, 2)
+    return kanvas
+  }
+  if (id === 'jamur_hutan') {
+    px('#f1e6cf', 7, 9, 2, 5)
+    px('#b5533c', 4, 6, 8, 4)
+    px('#c9684f', 5, 5, 6, 1)
+    px('#ffffff', 5, 7)
+    px('#ffffff', 9, 6)
+    px('#ffffff', 10, 8)
+  } else if (id === 'beri_liar') {
+    px('#3f8f3f', 3, 7, 10, 7)
+    px('#4fa34f', 4, 6, 8, 2)
+    px('#7a3fa8', 4, 8, 2, 2)
+    px('#7a3fa8', 8, 7, 2, 2)
+    px('#7a3fa8', 10, 10, 2, 2)
+    px('#9a5fd0', 6, 11, 2, 2)
+  } else if (id === 'akar_obat') {
+    px('#3f9a3f', 7, 4, 2, 8)
+    px('#5db65d', 4, 5, 3, 2)
+    px('#5db65d', 9, 6, 3, 2)
+    px('#5db65d', 5, 8, 2, 2)
+    px('#d9c08a', 7, 12, 2, 2)
+  } else {
+    // bunga bulan
+    px('#3f8f3f', 7, 8, 2, 6)
+    px('#cfe8ff', 5, 4, 6, 4)
+    px('#ffffff', 6, 5, 4, 2)
+    px('#9ad0ef', 7, 3, 2, 1)
+    px('#ffe066', 7, 6, 2, 1)
+  }
+  return kanvas
+}
+
 export function gambarKastil() {
   const { kanvas, px } = buat(80, 56, 3)
   const batu = '#9a9ea6'

@@ -748,10 +748,7 @@ main.lebar { max-width: 1180px; }
 /* Tinggi kolom chat mengikuti tinggi kanvas game */
 .game-samping { position: relative; min-height: 260px; }
 .game-samping .game-chat { position: absolute; inset: 0; margin: 0; }
-@media (max-width: 900px) {
-  .game-tata { grid-template-columns: 1fr; }
-  .game-samping { min-height: 0; height: 280px; }
-}
+
 
 /* Panel chat */
 .game-chat {
@@ -851,3 +848,94 @@ main.lebar { max-width: 1180px; }
   padding: 3px 6px;
 }
 .game-bentuk-hadiah input { width: 64px; }
+
+/* Kanvas muat di tinggi layar */
+.game-bingkai { width: 100%; max-width: calc((100vh - 170px) * 1.5); margin: 0 auto; }
+
+/* HUD di dalam game */
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  font-size: 0.78rem;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+.hud-kiri, .hud-kanan {
+  position: absolute;
+  top: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(10, 10, 12, 0.55);
+  border-radius: 8px;
+}
+.hud-kiri { left: 8px; width: min(230px, 46%); }
+.hud-kanan { right: 8px; text-align: right; }
+.hud-bar { position: relative; height: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.6); border-radius: 7px; }
+.hud-bar > span { display: block; height: 100%; }
+.hud-bar > em { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.7rem; font-style: normal; }
+.hud-hp > span { background: #d94a3d; }
+.hud-xp { height: 10px; }
+.hud-xp > span { background: #e0b030; }
+.hud-xp > em { font-size: 0.62rem; }
+.hud-musuh > span { background: #d94a3d; }
+.hud-tengah {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  display: grid;
+  gap: 4px;
+  width: min(270px, 38%);
+  padding: 6px 8px;
+  background: rgba(10, 10, 12, 0.55);
+  border-radius: 8px;
+  transform: translateX(-50%);
+}
+.hud-judul { display: flex; justify-content: space-between; gap: 8px; }
+.hud-forage {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  display: grid;
+  gap: 3px;
+  width: min(300px, 80%);
+  padding: 6px 8px;
+  text-align: center;
+  background: rgba(10, 10, 12, 0.6);
+  border-radius: 8px;
+  transform: translateX(-50%);
+}
+.hud-isi-anim { width: 0; background: #e0b030; animation: hud-isi linear forwards; }
+@keyframes hud-isi { to { width: 100%; } }
+@media (max-width: 640px) {
+  .hud-tengah { top: 92px; width: min(300px, 80%); }
+}
+
+/* ===== Tata letak game: game di kiri, chat di kanan ===== */
+main.lebar { max-width: 1180px; }
+main.lebar .game-area { max-width: none; }
+
+.layout-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 28%, 320px);
+  gap: 12px;
+  align-items: stretch;
+}
+.layout-game > .game-bingkai { grid-column: 1; grid-row: 1; }
+.layout-game > .layout-chat { grid-column: 2; grid-row: 1; position: relative; min-height: 240px; }
+
+/* Chat mengisi kolomnya dan tingginya mengikuti tinggi kanvas */
+.layout-chat > .game-chat { position: absolute; inset: 0; margin: 0; max-height: none; }
+.layout-chat .game-chat-daftar { flex: 1; min-height: 0; max-height: none; overflow-y: auto; }
+
+/* Baris tombol di bawah game tidak ikut melar */
+.game-area > .aksi { align-content: flex-start; }
+
+/* Layar HP: chat turun ke bawah game */
+@media (max-width: 640px) {
+  .layout-game { grid-template-columns: minmax(0, 1fr); }
+  .layout-game > .game-bingkai { grid-column: 1; grid-row: 1; }
+  .layout-game > .layout-chat { grid-column: 1; grid-row: 2; height: 280px; min-height: 0; }
+}

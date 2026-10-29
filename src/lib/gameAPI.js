@@ -19,14 +19,20 @@ export const jual = (item, jumlah) => rpc('game_jual', { p_item: item, p_jumlah:
 export const upgradeRumah = () => rpc('game_upgrade_rumah')
 
 export async function ambilKatalog() {
-  const [item, tanaman] = await Promise.all([
+  const [item, tanaman, alat] = await Promise.all([
     supabase.from('game_item').select('*').eq('aktif', true),
     supabase.from('game_tanaman').select('*').eq('aktif', true),
+    supabase.from('game_alat').select('*'),
   ])
   if (item.error) throw item.error
   if (tanaman.error) throw tanaman.error
-  return { item: item.data, tanaman: tanaman.data }
+  if (alat.error) throw alat.error
+  return { item: item.data, tanaman: tanaman.data, alat: alat.data }
 }
+
+export const forageMulai = (titik) => rpc('game_forage_mulai', { p_titik: titik })
+export const forageSelesai = () => rpc('game_forage_selesai')
+export const forageBatal = () => rpc('game_forage_batal')
 
 // ---------- Chat dan bisik ----------
 const KOLOM_CHAT = 'id, penulis_id, penulis_nama, isi, dibuat_pada, penerima_id, penerima_nama, jenis, hadiah_id'

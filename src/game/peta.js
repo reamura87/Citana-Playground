@@ -81,6 +81,7 @@ export const PETA = {
       { x: 800, y: 370, teks: 'Jalan Hasanudin' },
       { x: 1280, y: 680, teks: 'Tegal Badeng' },
       { x: 1360, y: 90, teks: 'Pengambengan' },
+      { x: 310, y: 48, teks: 'Tambang Batu' },
     ],
     hutan: [80, 280, 460, 720],
     padang: [1060, 640, 440, 440],
@@ -96,6 +97,7 @@ export const PETA = {
       [830, 350, 540, 260],
       [430, 960, 120, 80],
       [100, 990, 340, 220],
+      [60, 60, 520, 210],
     ],
   },
   pribadi: {
@@ -208,6 +210,13 @@ export function gambarTanah(peta) {
     for (let y = 800; y < 1100; y += 25) ctx.fillRect(600, y, 400, 2)
     ctx.fillStyle = '#9a9ea6'
     ctx.fillRect(720, 300, 160, 44)
+    // Tambang batu (barat laut)
+    ctx.fillStyle = '#77716b'
+    ctx.fillRect(60, 60, 520, 210)
+    for (let i = 0; i < 260; i += 1) {
+      ctx.fillStyle = rnd() > 0.5 ? '#86807a' : '#5f5a55'
+      ctx.fillRect(60 + rnd() * 512, 60 + rnd() * 202, 8, 8)
+    }
 
   } else {
     jalur(260, 400, 260, 510, 56)
@@ -244,3 +253,59 @@ export function gambarTanah(peta) {
   }
   return kanvas
 }
+
+export const NAMA_TIER = ['', 'perunggu', 'perak', 'emas', 'berlian', 'obsidian', 'mitril']
+
+export const JENIS_FORAGE = {
+  jamur_hutan: { nama: 'Jamur hutan', jenis: 'tumbuhan', tier: 0 },
+  beri_liar: { nama: 'Beri liar', jenis: 'tumbuhan', tier: 0 },
+  akar_obat: { nama: 'Akar obat', jenis: 'tumbuhan', tier: 0 },
+  bunga_bulan: { nama: 'Bunga bulan', jenis: 'tumbuhan', tier: 0 },
+  bijih_perunggu: { nama: 'Bijih perunggu', jenis: 'ore', tier: 1 },
+  bijih_perak: { nama: 'Bijih perak', jenis: 'ore', tier: 2 },
+  bijih_emas: { nama: 'Bijih emas', jenis: 'ore', tier: 3 },
+  bijih_berlian: { nama: 'Bijih berlian', jenis: 'ore', tier: 4 },
+  bijih_obsidian: { nama: 'Bijih obsidian', jenis: 'ore', tier: 5 },
+  bijih_mitril: { nama: 'Bijih mitril', jenis: 'ore', tier: 6 },
+}
+
+export const TITIK_FORAGE = [
+  // Tumbuhan: Hutan Kelam
+  { id: 1, forage: 'jamur_hutan', x: 150, y: 420 },
+  { id: 2, forage: 'jamur_hutan', x: 300, y: 380 },
+  { id: 3, forage: 'jamur_hutan', x: 220, y: 520 },
+  { id: 4, forage: 'jamur_hutan', x: 420, y: 500 },
+  { id: 5, forage: 'jamur_hutan', x: 130, y: 720 },
+  { id: 6, forage: 'jamur_hutan', x: 350, y: 780 },
+  { id: 7, forage: 'beri_liar', x: 250, y: 450 },
+  { id: 8, forage: 'beri_liar', x: 460, y: 420 },
+  { id: 9, forage: 'beri_liar', x: 120, y: 840 },
+  { id: 10, forage: 'beri_liar', x: 400, y: 880 },
+  { id: 11, forage: 'beri_liar', x: 200, y: 900 },
+  { id: 12, forage: 'beri_liar', x: 500, y: 700 },
+  { id: 13, forage: 'akar_obat', x: 330, y: 700 },
+  { id: 14, forage: 'akar_obat', x: 160, y: 660 },
+  { id: 15, forage: 'akar_obat', x: 450, y: 800 },
+  { id: 16, forage: 'akar_obat', x: 260, y: 780 },
+  { id: 17, forage: 'bunga_bulan', x: 100, y: 350 },
+  { id: 18, forage: 'bunga_bulan', x: 490, y: 860 },
+  // Bijih: Tambang Batu (makin ke barat, makin tinggi tier-nya)
+  { id: 101, forage: 'bijih_perunggu', x: 520, y: 230 },
+  { id: 102, forage: 'bijih_perunggu', x: 480, y: 190 },
+  { id: 103, forage: 'bijih_perunggu', x: 520, y: 150 },
+  { id: 104, forage: 'bijih_perunggu', x: 470, y: 110 },
+  { id: 105, forage: 'bijih_perunggu', x: 430, y: 225 },
+  { id: 106, forage: 'bijih_perunggu', x: 430, y: 150 },
+  { id: 107, forage: 'bijih_perak', x: 380, y: 100 },
+  { id: 108, forage: 'bijih_perak', x: 390, y: 190 },
+  { id: 109, forage: 'bijih_perak', x: 340, y: 230 },
+  { id: 110, forage: 'bijih_perak', x: 340, y: 140 },
+  { id: 111, forage: 'bijih_emas', x: 290, y: 100 },
+  { id: 112, forage: 'bijih_emas', x: 280, y: 200 },
+  { id: 113, forage: 'bijih_emas', x: 240, y: 150 },
+  { id: 114, forage: 'bijih_berlian', x: 190, y: 230 },
+  { id: 115, forage: 'bijih_berlian', x: 180, y: 110 },
+  { id: 116, forage: 'bijih_obsidian', x: 130, y: 170 },
+  { id: 117, forage: 'bijih_obsidian', x: 100, y: 100 },
+  { id: 118, forage: 'bijih_mitril', x: 90, y: 235 },
+]

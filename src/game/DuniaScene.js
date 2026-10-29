@@ -26,8 +26,21 @@ import {
   gambarSumur,
   gambarTanaman,
   warnaDariNama,
+  gambarBijih,
+  gambarTumbuhan,
 } from './gambar'
-import { DOMAIN_BOS, PETA, POSISI_PETAK, gambarTanah, posisiPatroli, sebarDekorasi } from './peta'
+
+import {
+  DOMAIN_BOS,
+  JENIS_FORAGE,
+  NAMA_TIER,
+  PETA,
+  POSISI_PETAK,
+  TITIK_FORAGE,
+  gambarTanah,
+  posisiPatroli,
+  sebarDekorasi,
+} from './peta'
 
 const KECEPATAN = 110
 const LAJU_DANGKAL = 0.55
@@ -89,6 +102,9 @@ export default class DuniaScene extends Phaser.Scene {
     this.pernahSerang = false
     this.laporBerikut = 0
     this.kunciSekitar = ''
+    this.forageObj = new Map()
+    this.forageSaatIni = null
+    this.forageBebas = 0
   }
 
   create() {
@@ -117,6 +133,7 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.peta === 'pribadi') this.tambahKebun()
     if (this.peta === 'server') this.tambahRintangan(DOMAIN_BOS.x, DOMAIN_BOS.y - 14, 70, 28)
     if (def.label) def.label.forEach((l) => this.labelStatis(l.x, l.y, l.teks))
+    if (this.peta === 'server') this.tambahForage()
     this.tambahDekorasi(def)
 
         // Titik lahir sedikit berbeda untuk tiap pemain supaya tidak bertumpuk
@@ -133,6 +150,15 @@ export default class DuniaScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(DEPTH_UI + 1)
       .setVisible(false)
+
+    this.barForage = {
+      latar: this.add.rectangle(0, 0, 44, 6, 0x000000, 0.75).setDepth(DEPTH_UI).setVisible(false),
+      isi: this.add
+        .rectangle(0, 0, 42, 4, 0xe0b030)
+        .setOrigin(0, 0.5)
+        .setDepth(DEPTH_UI + 1)
+        .setVisible(false),
+    }
 
         // Keyboard dibaca sendiri (bukan lewat plugin keyboard Phaser) supaya tidak ada tombol
     // yang dibatalkan dan kolom chat tetap bisa dipakai mengetik
@@ -179,7 +205,14 @@ export default class DuniaScene extends Phaser.Scene {
       this.registry.events.off('changedata-status', this.onStatus)
       this.registry.events.off('changedata-dunia', this.onDunia)
     })
-    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.perbaruiPetak() })
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        this.perbaruiPetak()
+        this.perbaruiForageVisual()
+      },
+    })
 
     this.terapkanStatus()
     this.terapkanDunia()
@@ -229,7 +262,16 @@ export default class DuniaScene extends Phaser.Scene {
       for (const tahap of [0, 1, 2]) tambah(`tanaman_${jenis}_${tahap}`, gambarTanaman(jenis, tahap))
     }
     for (let l = 1; l <= 5; l += 1) tambah(`rumah_${l}`, gambarRumah(l))
+      for (const [id, d] of Object.entries(JENIS_FORAGE)) {
+        for (const k of [0, 1]) {
+          tambah(
+            `forage_${id}_${k}`,
+            d.jenis === 'ore' ? gambarBijih(d.tier, k === 1) : gambarTumbuhan(id, k === 1),
+          )
+        }
+      }
   }
+  
 
   buatAnimasi() {
     const buat = (key, daftar, frameRate, repeat) => {
@@ -366,6 +408,12 @@ export default class DuniaScene extends Phaser.Scene {
     if (def.reruntuhan) umum.push(def.reruntuhan)
     if (def.padang) umum.push(def.padang)
     const khusus = [...def.larangan]
+    if (this.peta === 'server') {
+      for (const t of TITIK_FORAGE) {
+        umum.push([t.x - 24, t.y - 24, 48, 48])
+        khusus.push([t.x - 24, t.y - 24, 48, 48])
+      }
+    }
     const luas = [0, 0, def.ukuran.lebar, def.ukuran.tinggi]
     const seed = this.peta === 'server' ? 101 : 202
 
@@ -407,6 +455,86 @@ export default class DuniaScene extends Phaser.Scene {
       taruh(sebarDekorasi(seed + 5, 12, khusus, def.reruntuhan, 50), nisan, khusus)
       taruh(sebarDekorasi(seed + 6, 5, khusus, def.reruntuhan, 80), batu, khusus)
     }
+  }
+
+    // ---------- Foraging ----------
+  tambahForage() {
+    for (const t of TITIK_FORAGE) {
+      const def = JENIS_FORAGE[t.forage]
+      const sprite = this.add.image(t.x, t.y, `forage_${t.forage}_0`).setOrigin(0.5, 1).setDepth(t.y)
+      if (def.jenis === 'ore') this.tambahRintangan(t.x, t.y - 5, 22, 10)
+      this.forageObj.set(t.id, { ...t, sprite, kosong: undefined })
+      this.interaktif.push({ jenis: 'forage', id: t.id, forage: t.forage, x: t.x, y: t.y + 4, radius: 46 })
+    }
+  }
+
+  // Sisa milidetik sampai titik pulih untuk pemain ini (0 jika sudah siap)
+  sisaForage(id) {
+    const k = this.registry.get('dunia')?.forage?.kosong?.find((x) => x.id === id)
+    if (!k) return 0
+    return Math.max(0, Date.parse(k.siap_pada) - (Date.now() + (this.registry.get('selisihWaktu') ?? 0)))
+  }
+
+  perbaruiForageVisual() {
+    for (const o of this.forageObj.values()) {
+      const kosong = this.sisaForage(o.id) > 0
+      if (o.kosong !== kosong) {
+        o.kosong = kosong
+        o.sprite.setTexture(`forage_${o.forage}_${kosong ? 1 : 0}`)
+      }
+    }
+  }
+
+  labelForage(o) {
+    const def = JENIS_FORAGE[o.forage]
+    const sisa = this.sisaForage(o.id)
+    if (sisa > 0) return `${def.nama} (tumbuh lagi ${formatSisa(sisa)})`
+    if (def.jenis === 'ore') {
+      const beliung = this.registry.get('alat')?.beliung ?? 0
+      if (beliung < def.tier - 1) return `${def.nama}: butuh Beliung ${NAMA_TIER[def.tier - 1]}`
+      return `Tambang ${def.nama}`
+    }
+    return `Kumpulkan ${def.nama}`
+  }
+
+  tampilkanForage(id, teks) {
+    const o = this.forageObj.get(id)
+    if (o) this.teksMelayang(o.x, o.y - 34, teks, '#9be37a')
+    this.perbaruiForageVisual()
+  }
+
+  // Mengembalikan true selama pemain sedang mengumpulkan (gerak atau serang membatalkan)
+  perbaruiForage(boleh) {
+    const f = this.registry.get('forage')
+    if (!f) {
+      this.barForage.latar.setVisible(false)
+      this.barForage.isi.setVisible(false)
+      this.forageSaatIni = null
+      return false
+    }
+    if (f !== this.forageSaatIni) {
+      this.forageSaatIni = f
+      this.forageBebas = this.time.now + 500
+    }
+    const t = this.tombolTekan
+    const kontrol = this.registry.get('kontrol') ?? {}
+    const gerak =
+      t.has('ArrowLeft') || t.has('ArrowRight') || t.has('ArrowUp') || t.has('ArrowDown') ||
+      t.has('KeyA') || t.has('KeyD') || t.has('KeyW') || t.has('KeyS') ||
+      kontrol.kiri || kontrol.kanan || kontrol.atas || kontrol.bawah
+    if (boleh && gerak && this.time.now > this.forageBebas) {
+      this.game.events.emit('forage-batal')
+      return false
+    }
+    const rasio = Math.min(1, (Date.now() - f.mulai) / f.durasi)
+    this.barForage.latar.setPosition(this.pemain.x, this.pemain.y - 34).setVisible(true)
+    this.barForage.isi
+      .setPosition(this.pemain.x - 21, this.pemain.y - 34)
+      .setVisible(true)
+      .setScale(Math.max(0.001, rasio), 1)
+    this.pemain.anims.stop()
+    this.pemain.setTexture(`pemain_${this.arah}_serang${Math.floor(this.time.now / 260) % 3}`)
+    return true
   }
 
   // ---------- Status dari React ----------
@@ -677,6 +805,7 @@ export default class DuniaScene extends Phaser.Scene {
   serang(titik) {
     if (this.menyerang || this.registry.get('terkunci') || this.registry.get('mati')) return
     if (this.time.now < this.bolehSerangLagi) return
+    if (this.registry.get('forage')) this.game.events.emit('forage-batal')
     this.bolehSerangLagi = this.time.now + (this.registry.get('jedaSerang') ?? 420)
     this.menyerang = true
     this.pernahSerang = true
@@ -741,6 +870,7 @@ export default class DuniaScene extends Phaser.Scene {
   // Mengembalikan true kalau scene sedang dimulai ulang (bangkit di plaza desa)
   perbaruiMati(mati) {
     if (mati && !this.sedangMati) {
+      this.game.events.emit('forage-batal')
       this.sedangMati = true
       this.menyerang = false
       this.pemain.anims.stop()
@@ -988,12 +1118,12 @@ export default class DuniaScene extends Phaser.Scene {
     this.tekanSpasi = false
 
     this.perbaruiMusuh(dt)
-
+    const sedangForage = this.perbaruiForage(boleh)
     if (boleh && (tekanSpasi || kontrol.serang)) this.serang(null)
     if (kontrol.serang) kontrol.serang = false
 
-    if (this.menyerang || !boleh) {
-      if (!this.menyerang && !mati) {
+    if (this.menyerang || !boleh || sedangForage) {
+      if (!this.menyerang && !mati && !sedangForage) {
         this.pemain.anims.stop()
         this.pemain.setTexture(`pemain_${this.arah}_0`)
       }
@@ -1048,8 +1178,13 @@ export default class DuniaScene extends Phaser.Scene {
       }
     }
 
-    if (terdekat && boleh && !this.menyerang) {
-      const teks = terdekat.jenis === 'petak' ? this.labelPetak(terdekat.indeks) : terdekat.label
+    if (terdekat && boleh && !this.menyerang && !sedangForage) {
+      const teks =
+        terdekat.jenis === 'petak'
+          ? this.labelPetak(terdekat.indeks)
+          : terdekat.jenis === 'forage'
+            ? this.labelForage(terdekat)
+            : terdekat.label
       this.petunjuk
         .setText(`${teks}  [E]`)
         .setPosition(this.pemain.x, this.pemain.y - 40)
