@@ -514,7 +514,7 @@ export default function GamePage() {
 
   return (
     <>
-      <h1>Game</h1>
+      <h1>Citana World</h1>
         <div className="game-area">
         <div className="layout-game">
           <div className="game-bingkai">
