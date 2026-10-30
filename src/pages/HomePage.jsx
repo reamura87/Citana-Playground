@@ -5,6 +5,7 @@ import { DAFTAR_ALAT } from '../lib/alat'
 import { ambilKonten } from '../lib/konten'
 import { adalahHariIni } from '../lib/satua'
 import { useAmbil } from '../lib/useAmbil'
+import SatuaSelesai from '../components/SatuaSelesai'
 
 export default function HomePage() {
   const { data, memuat, error } = useAmbil(ambilKonten, [])
@@ -13,7 +14,10 @@ export default function HomePage() {
 
   return (
     <>
-      <GameHighlight />
+      <div className="beranda-atas">
+        <GameHighlight />
+        <SatuaSelesai />
+      </div>
 
       <p className="redup">Arsip ide gabut: cerita, gambar, 3D, dan kode.</p>
 

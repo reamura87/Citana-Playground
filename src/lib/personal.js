@@ -34,12 +34,27 @@ export async function ambilTulisanSaya(userId) {
   return data
 }
 
+// Satua personal yang sudah selesai dan terbit, yang paling baru selesai di atas
+export async function ambilSatuaSelesai(batas = 5) {
+  const { data, error } = await supabase
+    .from('satua')
+    .select('id, slug, judul, kategori, jenis, thumbnail_url, penulis_nama, skor, selesai_pada')
+    .in('jenis', ['cerpen', 'serial'])
+    .eq('terbit', true)
+    .eq('selesai', true)
+    .order('selesai_pada', { ascending: false })
+    .limit(batas)
+  if (error) throw error
+  return data
+}
+
 // Mengembalikan id tulisan
-export async function simpanPersonal({ id, jenis, judul, kategori, isi, thumbnail_url, terbit }) {
+// Mengembalikan id tulisan
+export async function simpanPersonal({ id, jenis, judul, kategori, isi, thumbnail_url, terbit, selesai }) {
   if (id) {
     const { data, error } = await supabase
       .from('satua')
-      .update({ judul, kategori, isi, thumbnail_url, terbit })
+      .update({ judul, kategori, isi, thumbnail_url, terbit, selesai })
       .eq('id', id)
       .select('id')
     if (error) throw error
@@ -48,7 +63,7 @@ export async function simpanPersonal({ id, jenis, judul, kategori, isi, thumbnai
   }
   const { data, error } = await supabase
     .from('satua')
-    .insert({ jenis, judul, kategori, isi, thumbnail_url, terbit, slug: buatSlug(judul) })
+    .insert({ jenis, judul, kategori, isi, thumbnail_url, terbit, selesai, slug: buatSlug(judul) })
     .select('id')
     .single()
   if (error) throw error

@@ -57,7 +57,7 @@ function DaftarTulisan({ userId }) {
                 {s.terbit ? <Link to={`/satua/${s.slug}`}>{s.judul}</Link> : s.judul}
                 <small className="redup">
                   {' · '}{s.jenis === 'serial' ? 'Serial' : 'Cerpen'}
-                  {' · '}{s.terbit ? 'Terbit' : 'Draf'}
+                  {' \u00b7 '}{s.terbit ? 'Terbit' : 'Draf'}{s.selesai ? ' \u00b7 Selesai' : ''}
                   {' · '}{formatTanggal(s.diperbarui_pada)}
                 </small>
               </span>
@@ -106,6 +106,7 @@ function FormTulisan({ awal }) {
   const [isi, setIsi] = useState(awal?.isi ?? '')
   const [thumbnail, setThumbnail] = useState(awal?.thumbnail_url ?? '')
   const [terbit, setTerbit] = useState(awal?.terbit ?? false)
+  const [selesai, setSelesai] = useState(awal?.selesai ?? false)
   const [status, setStatus] = useState('')
   const [menyimpan, setMenyimpan] = useState(false)
 
@@ -139,6 +140,7 @@ function FormTulisan({ awal }) {
         isi,
         thumbnail_url: thumbnail || null,
         terbit,
+        selesai,
       })
       navigate(!awal && jenis === 'serial' ? `/tulis/${idTulisan}` : '/tulis/saya')
     } catch (err) {
@@ -197,9 +199,32 @@ function FormTulisan({ awal }) {
         </div>
 
         <label className="centang">
-          <input type="checkbox" checked={terbit} onChange={(e) => setTerbit(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={terbit}
+            onChange={(e) => {
+              setTerbit(e.target.checked)
+              if (!e.target.checked) setSelesai(false)
+            }}
+          />
           Terbitkan (tampil untuk semua orang)
         </label>
+
+        <label className="centang">
+          <input
+            type="checkbox"
+            checked={selesai}
+            onChange={(e) => {
+              setSelesai(e.target.checked)
+              if (e.target.checked) setTerbit(true)
+            }}
+          />
+          Satua ini selesai
+        </label>
+        <p className="redup kecil">
+          Satua yang selesai otomatis diterbitkan dan tampil di Beranda.
+          {jenis === 'serial' ? ' Untuk serial, centang setelah semua episode terbit.' : ''}
+        </p>
 
         <div className="aksi">
           <button type="submit" className="tombol utama" disabled={menyimpan}>

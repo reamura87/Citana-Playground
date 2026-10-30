@@ -44,7 +44,7 @@ function App() {
         tema={tema}
         onGantiTema={() => setTema(tema === 'dark' ? 'light' : 'dark')}
       />
-      <main className={pathname.startsWith('/game') ? 'lebar' : undefined}>
+        <main className={pathname === '/' || pathname.startsWith('/game') ? 'lebar' : undefined}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/satua" element={<SatuaList />} />
