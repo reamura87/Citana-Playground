@@ -35,7 +35,10 @@ export async function ambilKatalog() {
 export const forageMulai = (titik) => rpc('game_forage_mulai', { p_titik: titik })
 export const forageSelesai = () => rpc('game_forage_selesai')
 export const forageBatal = () => rpc('game_forage_batal')
-export const pilihKelas = (kelas) => rpc('game_pilih_kelas', { p_kelas: kelas })
+export const buatKarakter = (kelas, kustom) => rpc('game_buat_karakter', { p_kelas: kelas, p_kustom: kustom })
+export const adminAturKarakter = (kelas, kustom) => rpc('game_admin_atur_karakter', { p_kelas: kelas, p_kustom: kustom })
+export const adminPakai = (item) => rpc('game_admin_pakai', { p_item: item })
+export const restartAkunGame = (konfirmasi) => rpc('game_restart_akun', { p_konfirmasi: konfirmasi })
 export const ambilMisi = () => rpc('game_quest_hari_ini')
 export const klaimMisi = (id) => rpc('game_quest_klaim', { p_quest: id })
 

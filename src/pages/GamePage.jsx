@@ -5,7 +5,6 @@ import {
   ambilKatalog,
   ambilMisi,
   klaimMisi,
-  pilihKelas,
   beli,
   diserang,
   jual,
@@ -20,11 +19,17 @@ import {
   forageBatal,
   forageMulai,
   forageSelesai,
+  adminAturKarakter,
+  adminPakai,
+  buatKarakter,
 } from '../lib/gameAPI'
 import HudGame from '../components/HudGame'
 import PanelChat from '../components/PanelChat'
 import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
 import { useAuth, useSesi } from '../lib/useSesi'
+import PembuatKarakter from '../components/PembuatKarakter'
+import { suara } from '../game/suara'
+import { useSuara } from '../lib/useSuara'
 
 const format = (n) => n.toLocaleString('id-ID')
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
@@ -89,6 +94,12 @@ export default function GamePage() {
   const [sekitar, setSekitar] = useState([])
   const [forage, setForage] = useState(null)
   const [misi, setMisi] = useState(null)
+  const [awalKarakter, setAwalKarakter] = useState(null)
+  const [galatKarakter, setGalatKarakter] = useState('')
+  const { nyala: suaraNyala, volume: suaraVolume } = useSuara()
+  const emasLalu = useRef(null)
+  const levelLalu = useRef(null)
+  
   const [aman, setAman] = useState(false)
   const forageRef = useRef(null)
   const forageTimer = useRef(null)
@@ -110,6 +121,7 @@ export default function GamePage() {
     const sesi = useSesi()
   const userId = sesi?.user.id ?? null
   const { profil } = useAuth()
+  const admin = profil?.peran === 'admin'
   const { tampak, afk } = useAktivitas()
   const mpDiizinkan = dunia?.mp?.aktif ?? false
   const chatDiizinkan = dunia?.mp?.chat ?? false
@@ -152,8 +164,14 @@ export default function GamePage() {
     Promise.all([masukGame(), ambilKatalog()])
       .then(([st, kat]) => {
         if (batal) return
-        terapkan(st)
         setKatalog(kat)
+        if (st.perlu_karakter) {
+          setAwalKarakter(st)
+          if (!st.baru) terapkan(st)
+          setTahap('karakter')
+          return
+        }
+        terapkan(st)
         setTahap('siap')
       })
       .catch((err) => {
@@ -271,6 +289,35 @@ export default function GamePage() {
   // Hentikan penghitung foraging saat halaman ditutup
   useEffect(() => () => clearTimeout(forageTimer.current), [])
 
+    // Musik mulai saat layar karakter atau game tampil, berhenti saat halaman ditutup
+  useEffect(() => {
+    if (tahap === 'siap' || tahap === 'karakter') suara.mulaiMusik()
+  }, [tahap])
+  useEffect(() => () => suara.hentikanMusik(), [])
+
+  // Tombol M: nyalakan atau matikan suara
+  useEffect(() => {
+    function tekan(e) {
+      if (e.code !== 'KeyM' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      const tag = document.activeElement?.tagName
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      suara.setNyala(!suara.cuplikan().nyala)
+    }
+    window.addEventListener('keydown', tekan)
+    return () => window.removeEventListener('keydown', tekan)
+  }, [])
+
+  // Naik level dan perubahan gold berbunyi
+  useEffect(() => {
+    if (!status) return
+    const { gold, level } = status.pemain
+    if (levelLalu.current !== null && level > levelLalu.current) suara.sfx('levelup')
+    else if (emasLalu.current !== null && gold > emasLalu.current) suara.sfx('koin')
+    else if (emasLalu.current !== null && gold < emasLalu.current) suara.sfx('beli')
+    levelLalu.current = level
+    emasLalu.current = gold
+  }, [status])
+
 
   // Kirim status dan keadaan dunia terbaru ke game
   useEffect(() => {
@@ -281,6 +328,7 @@ export default function GamePage() {
     game.registry.set('mati', Boolean(status.pemain.mati_sampai))
     game.registry.set('jedaSerang', status.pemain.jeda_serang_ms)
     game.registry.set('kelas', status.pemain.kelas)
+    game.registry.set('kustom', status.pemain.kustom)
   }, [status, selisih])
 
   useEffect(() => {
@@ -335,7 +383,9 @@ export default function GamePage() {
   }
 
   async function serangMusuh(id) {
+    
     try {
+      suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
       const { hasil, balasan, spawn, status: st } = await serang(id)
       setDunia(
         (d) =>
@@ -348,7 +398,9 @@ export default function GamePage() {
       terapkan(st)
       setTarget({ nama: hasil.nama, hp: hasil.hp, hp_maks: hasil.hp_maks })
       scene()?.tampilkanPukulan(spawn.id, hasil)
+      suara.sfx(hasil.mati ? 'bunuh' : 'pukul')
       if (balasan) scene()?.tampilkanLuka(balasan)
+      if (balasan) suara.sfx(balasan.mati ? 'gugur' : 'kena')
       if (balasan) batalForage()
       if (hasil.mati) setCatatan(ringkasKill(hasil))
       if (balasan?.mati) setCatatan('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
@@ -365,6 +417,7 @@ export default function GamePage() {
       terapkan(st)
       batalForage()
       scene()?.tampilkanLuka(hasil)
+      suara.sfx(hasil.mati ? 'gugur' : 'kena')
       if (hasil.mati) setCatatan('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
     } catch (err) {
       if (SENYAP.includes(err.message)) return
@@ -401,6 +454,7 @@ export default function GamePage() {
           },
       )
       scene()?.tampilkanForage(f.id, `+${h.jumlah} ${h.item}`)
+      suara.sfx('ambil')
       setCatatan(`+${h.jumlah} ${h.item}, +${h.xp} XP${h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''}`)
     } catch (err) {
       if (err.message === 'Belum selesai' && boleh) {
@@ -461,6 +515,19 @@ export default function GamePage() {
     }
   }
 
+
+    async function simpanKarakter(kelas, kustom) {
+    setSibuk(true)
+    setGalatKarakter('')
+    try {
+      terapkan(await buatKarakter(kelas, kustom))
+      setTahap('siap')
+    } catch (err) {
+      setGalatKarakter(err.message)
+    }
+    setSibuk(false)
+  }
+
   function aksi(o) {
     if (sibuk || panel || !status || status.pemain.mati_sampai) return
     if (o.jenis === 'toko') setPanel('toko')
@@ -488,6 +555,30 @@ export default function GamePage() {
       <>
         <p role="alert">Game gagal dimuat: {kesalahan}</p>
         <Link to="/">Kembali ke beranda</Link>
+      </>
+    )
+  }
+
+    if (tahap === 'karakter') {
+    const awal = awalKarakter.baru
+      ? { nama: awalKarakter.nama, kelas: 'ksatria', kustom: null }
+      : { nama: awalKarakter.pemain.nama, kelas: awalKarakter.pemain.kelas.id, kustom: awalKarakter.pemain.kustom }
+    return (
+      <>
+        <h1>Buat karakter</h1>
+        {!awalKarakter.baru && (
+          <p className="redup">Progresmu aman. Pilih role dan penampilan sekali saja, lalu lanjutkan bermain.</p>
+        )}
+        <PembuatKarakter
+          mode="awal"
+          nama={awal.nama}
+          awalKelas={awal.kelas}
+          awalKustom={awal.kustom}
+          daftarKelas={katalog.kelas}
+          sibuk={sibuk}
+          galat={galatKarakter}
+          onSimpan={simpanKarakter}
+        />
       </>
     )
   }
@@ -600,6 +691,21 @@ export default function GamePage() {
           <button type="button" className="tombol" onClick={() => setPanel('status')}>
             Status{p.poin_sisa > 0 ? ` (${p.poin_sisa} poin)` : ''}
           </button>
+                    <button type="button" className="tombol" aria-pressed={suaraNyala} onClick={() => suara.setNyala(!suaraNyala)}>
+            Suara: {suaraNyala ? 'nyala' : 'mati'}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={suaraVolume}
+            aria-label="Volume"
+            onChange={(e) => suara.setVolume(e.target.value)}
+          />
+          {admin && (
+            <button type="button" className="tombol" onClick={() => setPanel('debug')}>Debug</button>
+          )}
           <span className="redup kecil">Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E</span>
         </div>
 
@@ -717,12 +823,17 @@ export default function GamePage() {
               />
             )}
 
-            {panel === 'kelas' && (
-              <PanelKelas
+            {panel === 'kelas' && <PanelInfoKelas status={status} katalog={katalog} />}
+
+            {panel === 'debug' && admin && (
+              <PanelDebug
                 status={status}
                 katalog={katalog}
                 sibuk={sibuk}
-                onPilih={(id) => jalankan(() => pilihKelas(id), 'Kelas diganti. Senjata disesuaikan dengan kelas barumu.')}
+                onPakaiGratis={(id) => jalankan(() => adminPakai(id), 'Perlengkapan dipakai (gratis).')}
+                onSimpanKarakter={(kelas, kustom) =>
+                  jalankan(() => adminAturKarakter(kelas, kustom), 'Karakter diperbarui.')
+                }
               />
             )}
 
@@ -886,8 +997,108 @@ function PanelStatus({ status, sibuk, onTambah }) {
       />
       <p className="redup kecil">
         Kelas: {p.kelas.nama} (jangkauan {p.kelas.jangkauan} px) · Serangan: {p.attack} ({p.senjata?.nama ?? 'tanpa senjata'}) · Pertahanan:{' '}
-        {p.defense} ({p.armor?.nama ?? 'tanpa zirah'}). Attack dan defense bertambah lewat perlengkapan di Pandai Besi. Kelas diganti lewat Guru Elara di desa.
+        {p.defense} ({p.armor?.nama ?? 'tanpa zirah'}). Attack dan defense bertambah lewat perlengkapan di Pandai Besi. Role tidak bisa diganti (Restart Akun Game ada di menu profil).
       </p>
+    </>
+  )
+}
+
+function PanelInfoKelas({ status, katalog }) {
+  const kini = status.pemain.kelas
+  return (
+    <>
+      <h2>Guru Elara</h2>
+      <p>
+        Setiap petualang memilih satu jalan. Rolemu: <strong>{kini.nama}</strong>.
+      </p>
+      <p className="redup">
+        Role tidak bisa diganti setelah karakter dibuat. Kalau ingin memulai dengan role lain, gunakan{' '}
+        <strong>Restart Akun Game</strong> di menu profil (klik avatarmu di pojok kanan atas). Restart menghapus
+        seluruh progres game.
+      </p>
+      <ul className="daftar">
+        {katalog.kelas.map((c) => (
+          <li key={c.id}>
+            <span>
+              <strong>{c.nama}</strong>
+              {kini.id === c.id && <small className="redup"> · rolemu</small>}
+              <br />
+              <small className="redup">{c.deskripsi}</small>
+              <br />
+              <small className="redup">
+                Jangkauan {c.jangkauan} px · Damage {c.damage_persen}% · Jeda +{c.jeda_tambah_ms} ms · Damage
+                diterima {c.diterima_persen}% · DEF +{c.def_bonus}
+              </small>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+function PanelDebug({ status, katalog, sibuk, onPakaiGratis, onSimpanKarakter }) {
+  const [bagian, setBagian] = useState('menu')
+  const [tab, setTab] = useState('senjata')
+  const p = status.pemain
+
+  if (bagian === 'karakter') {
+    return (
+      <>
+        <h2>Debug: penampilan dan role</h2>
+        <PembuatKarakter
+          mode="debug"
+          nama={p.nama}
+          awalKelas={p.kelas.id}
+          awalKustom={p.kustom}
+          daftarKelas={katalog.kelas}
+          sibuk={sibuk}
+          onSimpan={onSimpanKarakter}
+          onBatal={() => setBagian('menu')}
+        />
+      </>
+    )
+  }
+
+  const daftar = katalog.item.filter((i) => i.kategori === tab)
+  const dipakai = (i) => (tab === 'senjata' ? p.senjata?.id : p.armor?.id) === i.id
+  return (
+    <>
+      <h2>Debug (admin)</h2>
+      <p className="redup">Alat uji khusus admin. Perubahan di sini tidak memakai gold.</p>
+      <div className="aksi">
+        <button type="button" className="tombol" onClick={() => setBagian('karakter')}>
+          Ubah penampilan dan role
+        </button>
+      </div>
+      <h3>Pakai perlengkapan gratis</h3>
+      <div className="aksi" role="group" aria-label="Jenis perlengkapan">
+        {[['senjata', 'Senjata'], ['armor', 'Armor']].map(([kode, nama]) => (
+          <button key={kode} type="button" className="tombol" aria-pressed={tab === kode} onClick={() => setTab(kode)}>
+            {nama}
+          </button>
+        ))}
+      </div>
+      <ul className="daftar">
+        {daftar.map((i) => (
+          <li key={i.id}>
+            <span>
+              {i.nama}{' '}
+              <small className="redup">
+                · {i.attack ? `+${i.attack} ATK` : i.defense ? `+${i.defense} DEF` : 'dasar'}
+                {i.kelas ? ` · ${i.kelas}` : ''}
+              </small>
+            </span>
+            {dipakai(i) ? (
+              <small className="redup">Dipakai</small>
+            ) : (
+              <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakaiGratis(i.id)}>
+                Pakai gratis
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </>
   )
 }
@@ -1141,38 +1352,3 @@ function PanelMisi({ npc, misi, sibuk, sisaReset, onKlaim }) {
   )
 }
 
-function PanelKelas({ status, katalog, sibuk, onPilih }) {
-  const kini = status.pemain.kelas
-  const biaya = kini.ganti_gratis ? 0 : kini.biaya_ganti
-  return (
-    <>
-      <h2>Guru Elara</h2>
-      <p className="redup">
-        Pilih jalanmu. {kini.ganti_gratis ? 'Pergantian pertamamu gratis.' : `Mengganti kelas butuh ${format(kini.biaya_ganti)} gold.`}{' '}
-        Senjata otomatis disesuaikan dengan kelasmu.
-      </p>
-      <ul className="daftar">
-        {katalog.kelas.map((c) => (
-          <li key={c.id}>
-            <span>
-              <strong>{c.nama}</strong>
-              {kini.id === c.id && <small className="redup"> · kelasmu</small>}
-              <br />
-              <small className="redup">{c.deskripsi}</small>
-              <br />
-              <small className="redup">
-                Jangkauan {c.jangkauan} px · Damage {c.damage_persen}% · Jeda +{c.jeda_tambah_ms} ms · Damage diterima{' '}
-                {c.diterima_persen}% · DEF +{c.def_bonus}
-              </small>
-            </span>
-            {kini.id !== c.id && (
-              <button type="button" className="tombol kecil" disabled={sibuk || status.pemain.gold < biaya} onClick={() => onPilih(c.id)}>
-                {biaya > 0 ? `Pilih (${format(biaya)} gold)` : 'Pilih (gratis)'}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </>
-  )
-}

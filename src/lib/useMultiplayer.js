@@ -60,7 +60,7 @@ export function useMultiplayer({ userId, aktif, maks, gameRef }) {
       maks,
       onPosisi: (id, d) => adegan()?.pemainLainPosisi(id, d),
       onKeluar: (id) => adegan()?.pemainLainKeluar(id),
-      onNama: (id, nama, kelas) => adegan()?.pemainLainNama(id, nama, kelas),
+      onNama: (id, nama, kelas, kustom) => adegan()?.pemainLainNama(id, nama, kelas, kustom),
       onStatus: setStatus,
     })
     mpRef.current = mp

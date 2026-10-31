@@ -7,6 +7,7 @@ import { ambilNotifikasi, tandaiDibaca, tandaiSemuaDibaca } from '../lib/notifik
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/useSesi'
 import { useNotifikasi } from '../lib/useNotifikasi'
+import DialogRestartGame from './DialogRestartGame'
 
 const TEKS_NOTIF = {
   balas: 'membalas komentarmu',
@@ -28,6 +29,7 @@ function AkunMasuk({ userId }) {
   const [buka, setBuka] = useState(false)
   const [pesan, setPesan] = useState('')
   const [mengunggah, setMengunggah] = useState(false)
+  const [restartBuka, setRestartBuka] = useState(false)
   const [notif, setNotif] = useState(null) // null = belum dimuat
   const wadah = useRef(null)
   const inputFoto = useRef(null)
@@ -124,6 +126,10 @@ function AkunMasuk({ userId }) {
         {jumlah > 0 && <span className="titik-notif" aria-hidden="true" />}
       </button>
 
+     {restartBuka && profil && (
+        <DialogRestartGame username={profil.username} onTutup={() => setRestartBuka(false)} />
+      )}
+      
       {buka && (
         <div className="kartu-akun">
           <div className="akun-profil">
@@ -146,6 +152,16 @@ function AkunMasuk({ userId }) {
             </button>
             <input ref={inputFoto} type="file" accept="image/*" hidden onChange={pilihFoto} />
             {pesan && <p className="redup kecil">{pesan}</p>}
+            <button
+              type="button"
+              className="tautan-tombol tautan-bahaya"
+              onClick={() => {
+                setBuka(false)
+                setRestartBuka(true)
+              }}
+            >
+              Restart Akun Game
+            </button>
           </div>
 
           <div className="notif">

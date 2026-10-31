@@ -16,6 +16,76 @@ function buat(lebar, tinggi, skala = S) {
 export const WARNA_BAJU = ['#c0392b', '#2e5fa3', '#3f8f4e', '#c28a1c', '#7d4fa8', '#2a8a8a']
 export const WARNA_RAMBUT = ['#3b2a1a', '#1c1c1c', '#7a4a1e', '#c9a227']
 export const JENIS_TANAMAN = ['wortel', 'tomat', 'labu']
+export const PALET_KULIT = ['#f5d0a9', '#e0b48a', '#c68e5d', '#a0693d', '#6f4526']
+export const PALET_RAMBUT = ['#3b2a1a', '#1c1c1c', '#7a4a1e', '#c9a227', '#b5482e', '#d9d9d9']
+export const PALET_BAJU = ['#c0392b', '#2e5fa3', '#3f8f4e', '#c28a1c', '#7d4fa8', '#2a8a8a', '#d35f9a', '#4a4f5a']
+export const NAMA_GAYA_RAMBUT = ['Pendek', 'Panjang', 'Jabrik', 'Botak']
+
+// Penampilan pemain: kustom = { kulit, rambut, gaya, baju } (nomor pilihan). Tanpa data: tampilan lama.
+export function rupaDariKustom(kustom, idCadangan = '') {
+  if (kustom && typeof kustom.kulit === 'number') {
+    return {
+      kulit: PALET_KULIT[kustom.kulit] ?? PALET_KULIT[1],
+      rambut: PALET_RAMBUT[kustom.rambut] ?? PALET_RAMBUT[0],
+      gaya: kustom.gaya ?? 0,
+      baju: PALET_BAJU[kustom.baju] ?? PALET_BAJU[0],
+    }
+  }
+  return { kulit: PALET_KULIT[1], rambut: PALET_RAMBUT[0], gaya: 3, baju: warnaDariNama(idCadangan).baju }
+}
+
+function gambarRambut(px, kelas, arah, gaya, warna) {
+  if (gaya === 3) return
+  if (kelas === 'penyihir') {
+    if (arah === 'samping') {
+      if (gaya === 1) px(warna, 5, 4, 2, 6)
+      else if (gaya === 2) {
+        px(warna, 5, 4, 2, 3)
+        px(warna, 4, 5)
+      } else px(warna, 6, 4, 1, 3)
+    } else if (arah === 'atas') {
+      if (gaya === 1) px(warna, 5, 4, 6, 6)
+      else if (gaya === 2) px(warna, 4, 4, 8, 3)
+      else px(warna, 5, 5, 6, 2)
+    } else if (gaya === 1) {
+      px(warna, 4, 4, 1, 6)
+      px(warna, 11, 4, 1, 6)
+    } else if (gaya === 2) {
+      px(warna, 3, 4, 2, 2)
+      px(warna, 11, 4, 2, 2)
+    } else {
+      px(warna, 4, 4, 1, 2)
+      px(warna, 11, 4, 1, 2)
+    }
+    return
+  }
+  // Ksatria: rambut mengintip dari balik helm
+  if (arah === 'samping') {
+    if (gaya === 1) px(warna, 5, 5, 2, 4)
+    else if (gaya === 2) {
+      px(warna, 6, 0)
+      px(warna, 8, 0)
+    } else px(warna, 5, 5, 2, 1)
+  } else if (arah === 'atas') {
+    if (gaya === 1) px(warna, 5, 5, 6, 4)
+    else if (gaya === 2) {
+      px(warna, 6, 0)
+      px(warna, 8, 0)
+      px(warna, 5, 5, 6, 1)
+    } else px(warna, 5, 5, 6, 1)
+  } else if (gaya === 1) {
+    px(warna, 4, 3, 1, 5)
+    px(warna, 11, 3, 1, 5)
+  } else if (gaya === 2) {
+    px(warna, 6, 0)
+    px(warna, 8, 0)
+    px(warna, 4, 3)
+    px(warna, 11, 3)
+  } else {
+    px(warna, 4, 3, 1, 2)
+    px(warna, 11, 3, 1, 2)
+  }
+}
 
 // Warna tunik ditentukan dari nama, supaya tiap pemain tampak berbeda
 export function warnaDariNama(nama = '') {
@@ -58,8 +128,10 @@ function pedangSerang(px, arah, t, baju) {
 }
 
 // langkah: 0 berdiri, 1 dan 2 jalan. serang: null atau tahap tebasan 0..2
-export function gambarPemain(arah, langkah, baju, serang = null) {
-  const { kanvas, px } = buat(16, 16)
+export function gambarPemain(arah, langkah, baju, serang = null, rupa = null) {
+  const { kanvas, px: px0 } = buat(16, 16)
+  const kulit = rupa?.kulit ?? KULIT
+  const px = (warna, ...sisa) => px0(warna === KULIT ? kulit : warna, ...sisa)
   const hose = '#5a4636'
   const sepatu = '#3a2616'
   const sabuk = '#5a3b1e'
@@ -129,6 +201,7 @@ export function gambarPemain(arah, langkah, baju, serang = null) {
       }
     }
   }
+  if (rupa) gambarRambut(px, 'ksatria', arah, rupa.gaya, rupa.rambut)
   if (menyerang) pedangSerang(px, arah, serang, baju)
   return kanvas
 }
@@ -343,10 +416,10 @@ function tongkatSerang(px, arah, t) {
   }
 }
 
-export function gambarPenyihir(arah, langkah, baju, serang = null) {
+export function gambarPenyihir(arah, langkah, baju, serang = null, rupa = null) {
   const { kanvas, px } = buat(16, 16)
   const gelap = '#2b2140'
-  const kulit = '#e0b48a'
+  const kulit = rupa?.kulit ?? '#e0b48a'
   const menyerang = serang !== null
   px('rgba(0,0,0,0.25)', 4, 14, 8, 2)
   px('#3a2616', 5, 13 - (!menyerang && langkah === 1 ? 1 : 0), 2, 1)
@@ -392,15 +465,15 @@ export function gambarPenyihir(arah, langkah, baju, serang = null) {
       px('#ffffff', 13, 4)
     }
   }
+  if (rupa) gambarRambut(px, 'penyihir', arah, rupa.gaya, rupa.rambut)
   if (menyerang) tongkatSerang(px, arah, serang)
   return kanvas
 }
 
-// Menggambar pemain sesuai kelasnya
-export function gambarKelas(kelas, arah, langkah, baju, serang = null) {
+export function gambarKelas(kelas, arah, langkah, baju, serang = null, rupa = null) {
   return kelas === 'penyihir'
-    ? gambarPenyihir(arah, langkah, baju, serang)
-    : gambarPemain(arah, langkah, baju, serang)
+    ? gambarPenyihir(arah, langkah, baju, serang, rupa)
+    : gambarPemain(arah, langkah, baju, serang, rupa)
 }
 
 

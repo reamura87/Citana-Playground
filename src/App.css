@@ -997,3 +997,81 @@ main.lebar .game-area { max-width: none; }
 
 .hud-aman { color: #9be37a; }
 .progres-misi { width: 140px; height: 10px; vertical-align: middle; accent-color: #e0b030; }
+
+/* Pembuat karakter */
+.kreator { display: grid; gap: 12px; }
+.kreator h3 { margin: 8px 0 0; font-size: 1rem; }
+.kreator-pratinjau { display: flex; flex-wrap: wrap; gap: 12px; }
+.kreator-gambar { margin: 0; text-align: center; font-size: 0.8rem; color: var(--muted); }
+.kreator-gambar canvas {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 4px;
+  image-rendering: pixelated;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.kreator-role { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.kartu-role {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--fg);
+  text-align: left;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.kartu-role[aria-checked='true'] { border-color: var(--fg); outline: 2px solid var(--fg); }
+.kreator-baris { display: grid; gap: 6px; }
+.kreator-swatch, .kreator-gaya { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch { width: 32px; height: 32px; border: 2px solid var(--line); border-radius: 8px; cursor: pointer; }
+.swatch[aria-pressed='true'] { border-color: var(--fg); outline: 2px solid var(--fg); outline-offset: 1px; }
+.peringatan {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 12px;
+  background: var(--field);
+  border: 1px solid #d94a3d;
+  border-radius: 10px;
+}
+
+/* Suara */
+.aksi input[type='range'] { width: 90px; accent-color: var(--fg); }
+
+/* Dialog Restart Akun Game */
+.dialog-latar {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.dialog-kotak {
+  width: min(520px, 100%);
+  padding: 20px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.dialog-kotak form { display: grid; gap: 10px; }
+.dialog-kotak h2 { margin: 0; }
+.dialog-kotak input {
+  font: inherit;
+  color: var(--fg);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.tombol-bahaya { color: #ffffff; background: #c0392b; border-color: #c0392b; }
+.tombol-bahaya:disabled { opacity: 0.5; cursor: not-allowed; }
+.tautan-bahaya { color: #d94a3d; }

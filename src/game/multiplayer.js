@@ -30,6 +30,8 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
   const posisi = new Map()
   const nama = new Map()
   const kelas = new Map()
+  const kustom = new Map()
+  
 
   // Makin ramai, makin jarang tiap pemain mengirim
   const jedaKirim = () => Math.max(400, 150 * (hadir.size + 1))
@@ -48,7 +50,8 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
       for (const r of data ?? []) {
         nama.set(r.id, r.username)
         kelas.set(r.id, r.kelas)
-        onNama?.(r.id, r.username, r.kelas)
+        kustom.set(r.id, r.kustom)
+        onNama?.(r.id, r.username, r.kelas, r.kustom)
       }
     }, 300)
   }
@@ -227,7 +230,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
   }
 
     const daftar = () =>
-    [...posisi].map(([id, d]) => ({ id, ...d, nama: nama.get(id), kelas: kelas.get(id) }))
+    [...posisi].map(([id, d]) => ({ id, ...d, nama: nama.get(id), kelas: kelas.get(id), kustom: kustom.get(id) }))
 
   return { sambung, hentikan, kirimPosisi, daftar }
 }

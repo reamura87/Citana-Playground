@@ -25,7 +25,6 @@ import {
   gambarSerigala,
   gambarSumur,
   gambarTanaman,
-  warnaDariNama,
   gambarBijih,
   gambarTumbuhan,
   gambarKelas,
@@ -34,6 +33,7 @@ import {
   gambarSlime,
   gambarTroll,
   gambarNPC,
+  rupaDariKustom,
 } from './gambar'
 
 import {
@@ -121,6 +121,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.kelasPemain = new Map()
     this.aman = false
     this.pesanAmanBerikut = 0
+    this.kustomPemain = new Map()
   }
 
   create() {
@@ -218,11 +219,13 @@ export default class DuniaScene extends Phaser.Scene {
     this.registry.events.on('changedata-status', this.onStatus)
     this.onKelas = () => this.terapkanKelasTekstur()
     this.registry.events.on('changedata-kelas', this.onKelas)
+    this.registry.events.on('changedata-kustom', this.onKelas)
     this.registry.events.on('changedata-dunia', this.onDunia)
     this.events.once('shutdown', () => {
       this.registry.events.off('changedata-status', this.onStatus)
       this.registry.events.off('changedata-dunia', this.onDunia)
       this.registry.events.off('changedata-kelas', this.onKelas)
+      this.registry.events.off('changedata-kustom', this.onKelas)
     })
     this.time.addEvent({
       delay: 1000,
@@ -595,15 +598,16 @@ export default class DuniaScene extends Phaser.Scene {
 
   // ---------- Kelas ----------
   // Menggambar ulang tekstur pemain sesuai kelas, tanpa mengubah nama teksturnya
-  terapkanKelasTekstur() {
+    terapkanKelasTekstur() {
     const kelas = this.registry.get('kelas')?.id ?? 'ksatria'
-    if (this.game.kelasTeks === kelas) return
-    this.game.kelasTeks = kelas
-    const baju = this.registry.get('warna')?.baju ?? WARNA_BAJU[0]
+    const rupa = rupaDariKustom(this.registry.get('kustom'), this.registry.get('idSaya') ?? '')
+    const sidik = `${kelas}|${rupa.kulit}|${rupa.rambut}|${rupa.gaya}|${rupa.baju}`
+    if (this.game.sidikTeks === sidik) return
+    this.game.sidikTeks = sidik
     for (const arah of ['bawah', 'atas', 'samping']) {
       for (const n of [0, 1, 2]) {
-        this.gantiKanvas(`pemain_${arah}_${n}`, gambarKelas(kelas, arah, n, baju))
-        this.gantiKanvas(`pemain_${arah}_serang${n}`, gambarKelas(kelas, arah, 0, baju, n))
+        this.gantiKanvas(`pemain_${arah}_${n}`, gambarKelas(kelas, arah, n, rupa.baju, null, rupa))
+        this.gantiKanvas(`pemain_${arah}_serang${n}`, gambarKelas(kelas, arah, 0, rupa.baju, n, rupa))
       }
     }
   }
@@ -1017,14 +1021,14 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
     // ---------- Pemain lain (multiplayer) ----------
-  pastikanWarna(baju, kelas) {
-    const kunci = `${kelas}_${baju.replace('#', '')}`
+  pastikanRupa(rupa, kelas) {
+    const kunci = `${kelas}_${rupa.kulit}_${rupa.rambut}_${rupa.gaya}_${rupa.baju}`.replace(/#/g, '')
     if (!this.textures.exists(`pl_${kunci}_bawah_0`)) {
       for (const arah of ['bawah', 'atas', 'samping']) {
         for (const n of [0, 1, 2]) {
-          this.textures.addCanvas(`pl_${kunci}_${arah}_${n}`, gambarKelas(kelas, arah, n, baju))
+          this.textures.addCanvas(`pl_${kunci}_${arah}_${n}`, gambarKelas(kelas, arah, n, rupa.baju, null, rupa))
         }
-        this.textures.addCanvas(`pl_${kunci}_${arah}_s`, gambarKelas(kelas, arah, 0, baju, 1))
+        this.textures.addCanvas(`pl_${kunci}_${arah}_s`, gambarKelas(kelas, arah, 0, rupa.baju, 1, rupa))
       }
     }
     return kunci
@@ -1032,7 +1036,7 @@ export default class DuniaScene extends Phaser.Scene {
 
   buatPemainLain(id) {
     const kelas = this.kelasPemain.get(id) ?? 'ksatria'
-    const kunci = this.pastikanWarna(warnaDariNama(id).baju, kelas)
+    const kunci = this.pastikanRupa(rupaDariKustom(this.kustomPemain.get(id), id), kelas)
     const sprite = this.add.sprite(0, 0, `pl_${kunci}_bawah_0`)
     const label = this.add
       .text(0, 0, this.namaPemain.get(id) ?? '…', GAYA_LABEL)
@@ -1063,17 +1067,16 @@ export default class DuniaScene extends Phaser.Scene {
     if (d.s) o.serangSampai = this.time.now + 260
   }
 
-  pemainLainNama(id, nama, kelas) {
+  pemainLainNama(id, nama, kelas, kustom) {
     if (!this.pemainLain) return
     this.namaPemain.set(id, nama)
     if (kelas) this.kelasPemain.set(id, kelas)
+    if (kustom) this.kustomPemain.set(id, kustom)
     const o = this.pemainLain.get(id)
     if (!o) return
     o.label.setText(nama)
-    if (kelas && kelas !== o.kelas) {
-      o.kelas = kelas
-      o.kunci = this.pastikanWarna(warnaDariNama(id).baju, kelas)
-    }
+    o.kelas = this.kelasPemain.get(id) ?? o.kelas
+    o.kunci = this.pastikanRupa(rupaDariKustom(this.kustomPemain.get(id), id), o.kelas)
   }
 
   pemainLainKeluar(id) {
@@ -1100,6 +1103,7 @@ export default class DuniaScene extends Phaser.Scene {
     for (const p of daftar) {
       if (p.nama) this.namaPemain.set(p.id, p.nama)
       if (p.kelas) this.kelasPemain.set(p.id, p.kelas)
+      if (p.kustom) this.kustomPemain.set(p.id, p.kustom)
       this.pemainLainPosisi(p.id, p)
     }
   }

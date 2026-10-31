@@ -19,6 +19,7 @@ export function buatGame(induk, { kontrol, status, userId }) {
         game.registry.set('idSaya', userId)
         game.registry.set('warna', warnaDariNama(userId ?? status.pemain.nama))
         game.registry.set('kelas', status.pemain.kelas)
+        game.registry.set('kustom', status.pemain.kustom)
         game.registry.set('terkunci', false)
         game.registry.set('mati', Boolean(status.pemain.mati_sampai))
         game.registry.set('jedaSerang', status.pemain.jeda_serang_ms)
