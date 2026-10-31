@@ -994,3 +994,6 @@ main.lebar .game-area { max-width: none; }
 @media (max-width: 1000px) {
   .beranda-atas { grid-template-columns: 1fr; }
 }
+
+.hud-aman { color: #9be37a; }
+.progres-misi { width: 140px; height: 10px; vertical-align: middle; accent-color: #e0b030; }

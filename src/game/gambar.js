@@ -153,6 +153,257 @@ export function gambarGoblin(f) {
   return kanvas
 }
 
+// ---------- Musuh baru (f = 0 atau 1) ----------
+export function gambarSlime(f) {
+  const { kanvas, px } = buat(16, 14)
+  const h = f === 1 ? 1 : 0
+  px('rgba(0,0,0,0.25)', 2, 12, 12, 2)
+  px('#37a043', 3 - h, 10, 10 + h * 2, 2)
+  px('#4fc15a', 3 - h, 6 + h, 10 + h * 2, 5 - h)
+  px('#4fc15a', 4, 4 + h, 8, 2)
+  px('#4fc15a', 5, 3 + h, 6, 1)
+  px('#74dd7c', 5, 4 + h, 3, 1)
+  px('#74dd7c', 4, 6 + h, 1, 2)
+  px('#1d2b1d', 6, 7 + h, 1, 2)
+  px('#1d2b1d', 10, 7 + h, 1, 2)
+  px('#ffffff', 6, 7 + h)
+  px('#ffffff', 10, 7 + h)
+  px('#1d2b1d', 8, 10 + h, 2, 1)
+  return kanvas
+}
+
+export function gambarKelelawar(f) {
+  const { kanvas, px } = buat(16, 16)
+  const sayap = '#4a3a5c'
+  const badan = '#2e2438'
+  px('rgba(0,0,0,0.2)', 5, 14, 6, 2)
+  if (f === 1) {
+    px(sayap, 1, 2, 4, 3)
+    px(sayap, 11, 2, 4, 3)
+    px(sayap, 3, 4, 3, 2)
+    px(sayap, 10, 4, 3, 2)
+  } else {
+    px(sayap, 0, 6, 5, 3)
+    px(sayap, 11, 6, 5, 3)
+    px(sayap, 3, 5, 3, 2)
+    px(sayap, 10, 5, 3, 2)
+  }
+  px(badan, 5, 5, 6, 4)
+  px(badan, 6, 4, 4, 6)
+  px(badan, 5, 3)
+  px(badan, 10, 3)
+  px('#ff4d4d', 6, 6)
+  px('#ff4d4d', 9, 6)
+  px('#ffffff', 7, 9)
+  px('#ffffff', 8, 9)
+  return kanvas
+}
+
+export function gambarLabaLaba(f) {
+  const { kanvas, px } = buat(16, 14)
+  const kaki = '#2a1f33'
+  px('rgba(0,0,0,0.25)', 2, 12, 12, 2)
+  for (let i = 0; i < 4; i += 1) {
+    const y = 5 + i + (i % 2 === f ? 0 : 1)
+    px(kaki, 1, y, 3, 1)
+    px(kaki, 12, y, 3, 1)
+    px(kaki, 0, y + 1, 1, 2)
+    px(kaki, 15, y + 1, 1, 2)
+  }
+  px('#4a2f5e', 5, 6, 6, 5)
+  px('#4a2f5e', 6, 4, 4, 3)
+  px('#6a4a82', 6, 5, 2, 1)
+  px('#ff4d4d', 6, 5)
+  px('#ff4d4d', 9, 5)
+  px('#ff4d4d', 7, 4)
+  px('#ff4d4d', 8, 4)
+  px('#8a3a8a', 7, 8, 2, 2)
+  return kanvas
+}
+
+export function gambarTroll(f) {
+  const { kanvas, px } = buat(24, 24)
+  const dy = f === 1 ? -1 : 0
+  const kulit = '#6f8062'
+  const gelap = '#5d6b52'
+  px('rgba(0,0,0,0.25)', 4, 22, 16, 2)
+  px(gelap, 7, 17, 4, 5 - (f === 1 ? 1 : 0))
+  px(gelap, 13, 17, 4, 5 - (f === 0 ? 1 : 0))
+  px('#3d3a30', 7, 21, 4, 1)
+  px('#3d3a30', 13, 21, 4, 1)
+  px(kulit, 6, 8 + dy, 12, 9)
+  px('#7f9372', 8, 9 + dy, 4, 2)
+  px('#8a6b3a', 7, 15 + dy, 10, 3)
+  px(kulit, 8, 2 + dy, 8, 7)
+  px(gelap, 7, 4 + dy, 1, 3)
+  px(gelap, 16, 4 + dy, 1, 3)
+  px('#ffe27a', 9, 5 + dy)
+  px('#ffe27a', 14, 5 + dy)
+  px('#1d1d1d', 10, 7 + dy, 4, 1)
+  px('#f3f3e0', 10, 6 + dy)
+  px('#f3f3e0', 13, 6 + dy)
+  px(kulit, 3, 9 + dy, 3, 7)
+  px(kulit, 18, 9 + dy, 3, 7)
+  px('#6b4423', 20, 3 + dy, 3, 14)
+  px('#8b5a2b', 19, 1 + dy, 5, 5)
+  px('#4a2f18', 21, 3 + dy, 1, 2)
+  return kanvas
+}
+
+// ---------- NPC (menghadap depan) ----------
+export function gambarNPC(jenis) {
+  const { kanvas, px } = buat(16, 18)
+  px('rgba(0,0,0,0.25)', 4, 16, 8, 2)
+  px('#3a2616', 5, 15, 2, 2)
+  px('#3a2616', 9, 15, 2, 2)
+  px('#5a4636', 5, 12, 2, 3)
+  px('#5a4636', 9, 12, 2, 3)
+  if (jenis === 'kapten') {
+    px('#8a1f1f', 3, 8, 10, 7)
+    px('#9aa0a8', 4, 8, 8, 5)
+    px('#d4af37', 7, 10, 2, 1)
+    px('#e0b48a', 5, 3, 6, 5)
+    px('#9aa0a8', 5, 2, 6, 3)
+    px('#c0392b', 7, 0, 2, 3)
+    px('#222222', 6, 5)
+    px('#222222', 9, 5)
+    px('#8b5a2b', 13, 3, 1, 12)
+    px('#cfd3d8', 12, 1, 3, 3)
+  } else if (jenis === 'herbalis') {
+    px('#3f8f4e', 4, 8, 8, 7)
+    px('#2d6a39', 3, 7, 10, 2)
+    px('#e0b48a', 5, 4, 6, 4)
+    px('#3f8f4e', 4, 2, 8, 4)
+    px('#2d6a39', 4, 5, 1, 3)
+    px('#2d6a39', 11, 5, 1, 3)
+    px('#222222', 6, 6)
+    px('#222222', 9, 6)
+    px('#a9763d', 11, 11, 4, 4)
+    px('#7fb34a', 12, 10, 2, 1)
+    px('#d33333', 13, 10)
+  } else {
+    px('#6a3fa0', 4, 8, 8, 8)
+    px('#8a5fc0', 4, 8, 8, 1)
+    px('#e0b48a', 5, 5, 6, 4)
+    px('#e8e8e8', 5, 8, 6, 2)
+    px('#6a3fa0', 4, 4, 8, 2)
+    px('#6a3fa0', 6, 1, 4, 4)
+    px('#f2c94c', 7, 4, 2, 1)
+    px('#222222', 6, 6)
+    px('#222222', 9, 6)
+    px('#6b4423', 13, 2, 1, 14)
+    px('#6fe4f0', 12, 0, 3, 3)
+  }
+  return kanvas
+}
+
+// ---------- Penyihir ----------
+function tongkatSerang(px, arah, t) {
+  const kayu = '#6b4423'
+  const orb = '#6fe4f0'
+  const cahaya = '#ffffff'
+  if (arah === 'samping') {
+    if (t === 0) {
+      px(kayu, 11, 3, 1, 8)
+      px(orb, 10, 1, 3, 3)
+      px(cahaya, 11, 2)
+    } else if (t === 1) {
+      px(kayu, 10, 8, 4, 1)
+      px(orb, 12, 5, 4, 4)
+      px(cahaya, 13, 6, 2, 2)
+    } else {
+      px(kayu, 10, 8, 4, 1)
+      px(orb, 14, 7, 2, 2)
+      px(cahaya, 15, 6)
+    }
+  } else if (arah === 'atas') {
+    px(kayu, 13, 3, 1, 9)
+    if (t === 0) {
+      px(orb, 12, 1, 3, 3)
+      px(cahaya, 13, 2)
+    } else if (t === 1) {
+      px(orb, 5, 0, 6, 3)
+      px(cahaya, 7, 1, 2, 1)
+    } else {
+      px(cahaya, 7, 0)
+      px(cahaya, 9, 1)
+    }
+  } else if (t === 0) {
+    px(kayu, 13, 2, 1, 9)
+    px(orb, 12, 0, 3, 3)
+    px(cahaya, 13, 1)
+  } else if (t === 1) {
+    px(kayu, 11, 8, 3, 1)
+    px(orb, 9, 10, 5, 5)
+    px(cahaya, 10, 11, 3, 3)
+  } else {
+    px(kayu, 11, 8, 3, 1)
+    px(orb, 11, 12, 3, 3)
+    px(cahaya, 12, 13)
+  }
+}
+
+export function gambarPenyihir(arah, langkah, baju, serang = null) {
+  const { kanvas, px } = buat(16, 16)
+  const gelap = '#2b2140'
+  const kulit = '#e0b48a'
+  const menyerang = serang !== null
+  px('rgba(0,0,0,0.25)', 4, 14, 8, 2)
+  px('#3a2616', 5, 13 - (!menyerang && langkah === 1 ? 1 : 0), 2, 1)
+  px('#3a2616', 9, 13 - (!menyerang && langkah === 2 ? 1 : 0), 2, 1)
+
+  if (arah === 'samping') {
+    px(baju, 5, 7, 6, 6)
+    px(gelap, 5, 9, 6, 1)
+    px(kulit, 7, 3, 4, 4)
+    px('#222222', 9, 5)
+    px(baju, 5, 3, 7, 1)
+    px(baju, 6, 2, 5, 1)
+    px(baju, 7, 1, 3, 1)
+    px(baju, 8, 0, 2, 1)
+    px(gelap, 6, 7, 3, 4)
+    if (!menyerang) {
+      px('#6b4423', 10, 5, 1, 9)
+      px('#6fe4f0', 9, 3, 3, 3)
+      px('#ffffff', 10, 4)
+    }
+  } else {
+    px(baju, 4, 7, 8, 6)
+    px(gelap, 4, 9, 8, 1)
+    px('#d4af37', 7, 9, 2, 1)
+    px(baju, 3, 8, 1, 3)
+    px(baju, 12, 8, 1, 3)
+    px(kulit, 3, 11)
+    px(kulit, 12, 11)
+    if (arah === 'atas') {
+      px(gelap, 5, 3, 6, 4)
+    } else {
+      px(kulit, 5, 3, 6, 4)
+      px('#222222', 6, 5)
+      px('#222222', 9, 5)
+    }
+    px(baju, 4, 3, 8, 1)
+    px(baju, 5, 2, 6, 1)
+    px(baju, 6, 1, 4, 1)
+    px(baju, 7, 0, 2, 1)
+    if (!menyerang) {
+      px('#6b4423', 13, 5, 1, 9)
+      px('#6fe4f0', 12, 3, 3, 3)
+      px('#ffffff', 13, 4)
+    }
+  }
+  if (menyerang) tongkatSerang(px, arah, serang)
+  return kanvas
+}
+
+// Menggambar pemain sesuai kelasnya
+export function gambarKelas(kelas, arah, langkah, baju, serang = null) {
+  return kelas === 'penyihir'
+    ? gambarPenyihir(arah, langkah, baju, serang)
+    : gambarPemain(arah, langkah, baju, serang)
+}
+
+
 export function gambarSerigala(f) {
   const { kanvas, px } = buat(16, 16)
   const dy = f === 1 ? -1 : 0

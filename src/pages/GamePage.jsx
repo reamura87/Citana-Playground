@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import {
   ambilDunia,
   ambilKatalog,
+  ambilMisi,
+  klaimMisi,
+  pilihKelas,
   beli,
   diserang,
   jual,
@@ -85,6 +88,8 @@ export default function GamePage() {
   const [target, setTarget] = useState(null)
   const [sekitar, setSekitar] = useState([])
   const [forage, setForage] = useState(null)
+  const [misi, setMisi] = useState(null)
+  const [aman, setAman] = useState(false)
   const forageRef = useRef(null)
   const forageTimer = useRef(null)
   const batalForageRef = useRef(null)
@@ -238,6 +243,7 @@ export default function GamePage() {
       game.events.on('posisi-saya', (d) => mpApi.current.kirimPosisi?.(d))
       game.events.on('pemain-sekitar', (d) => setSekitar(d))
       game.events.on('forage-batal', () => batalForageRef.current?.())
+      game.events.on('zona-aman', (v) => setAman(v))
       game.events.on('peta', (nama) => {
         batalForageRef.current?.()
         setPeta(nama)
@@ -274,6 +280,7 @@ export default function GamePage() {
     game.registry.set('status', status)
     game.registry.set('mati', Boolean(status.pemain.mati_sampai))
     game.registry.set('jedaSerang', status.pemain.jeda_serang_ms)
+    game.registry.set('kelas', status.pemain.kelas)
   }, [status, selisih])
 
   useEffect(() => {
@@ -441,12 +448,26 @@ export default function GamePage() {
     jalankan(() => panen(i), 'Panen berhasil! Hasilnya masuk ke inventaris.')
   }
 
+    async function bukaNpc(o) {
+    if (o.jenisNpc === 'kelas') {
+      setPanel('kelas')
+      return
+    }
+    try {
+      setMisi(await ambilMisi())
+      setPanel(`misi:${o.npc}`)
+    } catch (err) {
+      setCatatan(err.message)
+    }
+  }
+
   function aksi(o) {
     if (sibuk || panel || !status || status.pemain.mati_sampai) return
     if (o.jenis === 'toko') setPanel('toko')
     else if (o.jenis === 'rumah') setPanel('rumah')
     else if (o.jenis === 'petak') aksiPetak(o.indeks)
     else if (o.jenis === 'forage') mulaiForage(o.id)
+    else if (o.jenis === 'npc') bukaNpc(o)
     else if (o.jenis === 'papan') {
       setCatatan(
                 'Jir mati awokaowkawok. Klik atau tekan Spasi untuk menebas. Musuh akan mengejar dan membalas, jadi jaga HP-mu. Kalau HP habis, kamu menunggu 5 menit. Tiap naik level kamu mendapat 3 poin untuk Health atau Kecepatan serang. Senjata dan zirah dibeli di Pandai Besi. Tekan Enter untuk mengobrol dengan pemain lain.',
@@ -531,6 +552,7 @@ export default function GamePage() {
               bos={peta === 'server' ? bos : null}
               bosTeks={bosTeks}
               forage={forage}
+              aman={aman}
             />
             {sisaMati && (
               <div className="game-mati" role="alert">
@@ -671,6 +693,36 @@ export default function GamePage() {
                   await jalankan(() => tanam(indeksPetak, id), 'Bibit ditanam.')
                   setPanel(null)
                 }}
+              />
+            )}
+
+                        {(panel === 'misi:kapten' || panel === 'misi:herbalis') && (
+              <PanelMisi
+                npc={panel.slice(5)}
+                misi={misi}
+                sibuk={sibuk}
+                sisaReset={sisaReset}
+                onKlaim={(id) =>
+                  jalankan(async () => {
+                    const h = await klaimMisi(id)
+                    setMisi(h.misi)
+                    setCatatan(
+                      `Misi selesai: ${h.judul}. +${h.xp} XP, +${h.gold} gold${
+                        h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''
+                      }`,
+                    )
+                    return h
+                  })
+                }
+              />
+            )}
+
+            {panel === 'kelas' && (
+              <PanelKelas
+                status={status}
+                katalog={katalog}
+                sibuk={sibuk}
+                onPilih={(id) => jalankan(() => pilihKelas(id), 'Kelas diganti. Senjata disesuaikan dengan kelas barumu.')}
               />
             )}
 
@@ -833,8 +885,8 @@ function PanelStatus({ status, sibuk, onTambah }) {
         onTambah={() => onTambah('speed')}
       />
       <p className="redup kecil">
-        Serangan: {p.attack} ({p.senjata?.nama ?? 'tanpa senjata'}) · Pertahanan: {p.defense} ({p.armor?.nama ?? 'tanpa zirah'}).
-        Attack dan defense bertambah lewat perlengkapan di Pandai Besi.
+        Kelas: {p.kelas.nama} (jangkauan {p.kelas.jangkauan} px) · Serangan: {p.attack} ({p.senjata?.nama ?? 'tanpa senjata'}) · Pertahanan:{' '}
+        {p.defense} ({p.armor?.nama ?? 'tanpa zirah'}). Attack dan defense bertambah lewat perlengkapan di Pandai Besi. Kelas diganti lewat Guru Elara di desa.
       </p>
     </>
   )
@@ -871,7 +923,7 @@ function PanelToko({ status, katalog, dunia, sibuk, onBeli, onJual, onPakai }) {
 
       {(tab === 'senjata' || tab === 'armor') && (
         <ul className="daftar">
-          {dijual([tab]).map((i) => (
+          {dijual([tab]).filter((i) => !i.kelas || i.kelas === status.pemain.kelas.id).map((i) => (
             <li key={i.id}>
               <span>
                 {i.nama}{' '}
@@ -1044,6 +1096,83 @@ function PanelTanam({ status, katalog, sibuk, onTanam }) {
         ))}
       </ul>
       <p className="redup kecil">Bibit dijual di Pandai Besi, di kerajaan (dunia bersama).</p>
+    </>
+  )
+}
+const NAMA_NPC = { kapten: 'Kapten Rowan', herbalis: 'Herbalis Mira' }
+const SAPAAN = {
+  kapten: 'Perbatasan butuh tangan yang cekatan. Selesaikan tugas hari ini dan ambil upahmu.',
+  herbalis: 'Hutan dan tambang penuh bahan berharga. Bantu aku mengumpulkannya.',
+}
+
+function PanelMisi({ npc, misi, sibuk, sisaReset, onKlaim }) {
+  const daftar = misi?.quest.filter((m) => m.npc === npc) ?? []
+  return (
+    <>
+      <h2>{NAMA_NPC[npc]}</h2>
+      <p className="redup">{SAPAAN[npc]}</p>
+      {daftar.length === 0 && <p className="redup">Belum ada misi untukmu hari ini.</p>}
+      <ul className="daftar">
+        {daftar.map((m) => {
+          const selesai = m.progres >= m.jumlah
+          return (
+            <li key={m.id}>
+              <span>
+                <strong>{m.judul}</strong>
+                <br />
+                <progress className="progres-misi" max={m.jumlah} value={m.progres} />{' '}
+                <small>{m.progres}/{m.jumlah}</small>
+                <br />
+                <small className="redup">Hadiah: +{m.xp} XP · +{m.gold} gold</small>
+              </span>
+              {m.status === 'diambil' ? (
+                <small className="redup">Selesai ✓</small>
+              ) : (
+                <button type="button" className="tombol kecil" disabled={sibuk || !selesai} onClick={() => onKlaim(m.id)}>
+                  {selesai ? 'Ambil hadiah' : 'Belum selesai'}
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      <p className="redup kecil">Misi baru muncul dalam {sisaReset}.</p>
+    </>
+  )
+}
+
+function PanelKelas({ status, katalog, sibuk, onPilih }) {
+  const kini = status.pemain.kelas
+  const biaya = kini.ganti_gratis ? 0 : kini.biaya_ganti
+  return (
+    <>
+      <h2>Guru Elara</h2>
+      <p className="redup">
+        Pilih jalanmu. {kini.ganti_gratis ? 'Pergantian pertamamu gratis.' : `Mengganti kelas butuh ${format(kini.biaya_ganti)} gold.`}{' '}
+        Senjata otomatis disesuaikan dengan kelasmu.
+      </p>
+      <ul className="daftar">
+        {katalog.kelas.map((c) => (
+          <li key={c.id}>
+            <span>
+              <strong>{c.nama}</strong>
+              {kini.id === c.id && <small className="redup"> · kelasmu</small>}
+              <br />
+              <small className="redup">{c.deskripsi}</small>
+              <br />
+              <small className="redup">
+                Jangkauan {c.jangkauan} px · Damage {c.damage_persen}% · Jeda +{c.jeda_tambah_ms} ms · Damage diterima{' '}
+                {c.diterima_persen}% · DEF +{c.def_bonus}
+              </small>
+            </span>
+            {kini.id !== c.id && (
+              <button type="button" className="tombol kecil" disabled={sibuk || status.pemain.gold < biaya} onClick={() => onPilih(c.id)}>
+                {biaya > 0 ? `Pilih (${format(biaya)} gold)` : 'Pilih (gratis)'}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </>
   )
 }

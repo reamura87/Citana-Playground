@@ -29,6 +29,7 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
   let kiriman = []
   const posisi = new Map()
   const nama = new Map()
+  const kelas = new Map()
 
   // Makin ramai, makin jarang tiap pemain mengirim
   const jedaKirim = () => Math.max(400, 150 * (hadir.size + 1))
@@ -43,10 +44,11 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
       const ids = [...antreNama]
       antreNama = new Set()
       if (ids.length === 0 || dihentikan) return
-      const { data } = await supabase.from('profil_publik').select('id, username').in('id', ids)
+      const { data } = await supabase.rpc('game_info_pemain', { p_ids: ids })
       for (const r of data ?? []) {
         nama.set(r.id, r.username)
-        onNama?.(r.id, r.username)
+        kelas.set(r.id, r.kelas)
+        onNama?.(r.id, r.username, r.kelas)
       }
     }, 300)
   }
@@ -224,7 +226,8 @@ export function buatMultiplayer({ userId, maks, onPosisi, onKeluar, onNama, onSt
     posisi.clear()
   }
 
-  const daftar = () => [...posisi].map(([id, d]) => ({ id, ...d, nama: nama.get(id) }))
+    const daftar = () =>
+    [...posisi].map(([id, d]) => ({ id, ...d, nama: nama.get(id), kelas: kelas.get(id) }))
 
   return { sambung, hentikan, kirimPosisi, daftar }
 }

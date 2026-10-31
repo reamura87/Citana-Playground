@@ -1,6 +1,6 @@
 const format = (n) => n.toLocaleString('id-ID')
 
-export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sisaReset, peta, target, bos, bosTeks, forage }) {
+export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sisaReset, peta, target, bos, bosTeks, forage, aman }) {
   return (
     <div className="hud">
       <div className="hud-kiri">
@@ -22,6 +22,7 @@ export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sis
         <span>ATK {p.attack} · DEF {p.defense}</span>
         <span>Hadiah {harian.berhadiah}/{harian.batas}</span>
         <small>{peta === 'server' ? 'Kerajaan' : 'Rumah'} · reset {sisaReset}</small>
+        {aman && <strong className="hud-aman">Zona aman</strong>}
       </div>
 
       {(target || bos) && (

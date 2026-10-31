@@ -28,15 +28,23 @@ import {
   warnaDariNama,
   gambarBijih,
   gambarTumbuhan,
+  gambarKelas,
+  gambarKelelawar,
+  gambarLabaLaba,
+  gambarSlime,
+  gambarTroll,
+  gambarNPC,
 } from './gambar'
 
 import {
   DOMAIN_BOS,
   JENIS_FORAGE,
   NAMA_TIER,
+  NPC_DUNIA,
   PETA,
   POSISI_PETAK,
   TITIK_FORAGE,
+  ZONA_AMAN,
   gambarTanah,
   posisiPatroli,
   sebarDekorasi,
@@ -65,6 +73,10 @@ const INFO_MUSUH = {
   kerangka: { lebar: 40, tinggi: 40, radius: 20, kecepatan: 28, kejar: 55, aggro: 150, lepas: 320, jangkauan: 36, jeda: 1800 },
   orc: { lebar: 40, tinggi: 40, radius: 22, kecepatan: 26, kejar: 52, aggro: 160, lepas: 330, jangkauan: 38, jeda: 2000 },
   naga: { lebar: 96, tinggi: 84, radius: 46, kecepatan: 0, kejar: 0, aggro: 0, lepas: 0, jangkauan: 150, jeda: 2600 },
+    slime: { lebar: 32, tinggi: 28, radius: 14, kecepatan: 18, kejar: 40, aggro: 100, lepas: 260, jangkauan: 26, jeda: 1600 },
+  kelelawar: { lebar: 32, tinggi: 32, radius: 14, kecepatan: 70, kejar: 120, aggro: 150, lepas: 330, jangkauan: 28, jeda: 1200 },
+  laba_laba: { lebar: 32, tinggi: 28, radius: 16, kecepatan: 44, kejar: 80, aggro: 130, lepas: 300, jangkauan: 30, jeda: 1400 },
+  troll: { lebar: 48, tinggi: 48, radius: 24, kecepatan: 22, kejar: 50, aggro: 150, lepas: 320, jangkauan: 44, jeda: 2200 },
 }
 
 function formatSisa(ms) {
@@ -105,6 +117,10 @@ export default class DuniaScene extends Phaser.Scene {
     this.forageObj = new Map()
     this.forageSaatIni = null
     this.forageBebas = 0
+    this.npcObj = new Map()
+    this.kelasPemain = new Map()
+    this.aman = false
+    this.pesanAmanBerikut = 0
   }
 
   create() {
@@ -200,10 +216,13 @@ export default class DuniaScene extends Phaser.Scene {
     this.onStatus = () => this.terapkanStatus()
     this.onDunia = () => this.terapkanDunia()
     this.registry.events.on('changedata-status', this.onStatus)
+    this.onKelas = () => this.terapkanKelasTekstur()
+    this.registry.events.on('changedata-kelas', this.onKelas)
     this.registry.events.on('changedata-dunia', this.onDunia)
     this.events.once('shutdown', () => {
       this.registry.events.off('changedata-status', this.onStatus)
       this.registry.events.off('changedata-dunia', this.onDunia)
+      this.registry.events.off('changedata-kelas', this.onKelas)
     })
     this.time.addEvent({
       delay: 1000,
@@ -237,6 +256,10 @@ export default class DuniaScene extends Phaser.Scene {
       kerangka: gambarKerangka,
       orc: gambarOrc,
       naga: gambarNaga,
+      slime: gambarSlime,
+      kelelawar: gambarKelelawar,
+      laba_laba: gambarLabaLaba,
+      troll: gambarTroll,
     }
     for (const [id, buat] of Object.entries(pembuatMusuh)) {
       for (const f of [0, 1]) tambah(`musuh_${id}_${f}`, buat(f))
@@ -255,6 +278,7 @@ export default class DuniaScene extends Phaser.Scene {
     tambah('gua', gambarGua())
     tambah('papan', gambarPapan())
     tambah('gerbang', gambarGerbang())
+    for (const n of NPC_DUNIA) tambah(`npc_${n.id}`, gambarNPC(n.id))
     WARNA_BUNGA.forEach((w, i) => tambah(`bunga_${i}`, gambarBunga(w)))
     tambah('petak_buka', gambarPetak(false))
     tambah('petak_kunci', gambarPetak(true))
@@ -270,6 +294,7 @@ export default class DuniaScene extends Phaser.Scene {
           )
         }
       }
+    this.terapkanKelasTekstur()
   }
   
 
@@ -409,6 +434,7 @@ export default class DuniaScene extends Phaser.Scene {
     if (def.padang) umum.push(def.padang)
     const khusus = [...def.larangan]
     if (this.peta === 'server') {
+      if (this.peta === 'server') this.tambahNpc()
       for (const t of TITIK_FORAGE) {
         umum.push([t.x - 24, t.y - 24, 48, 48])
         khusus.push([t.x - 24, t.y - 24, 48, 48])
@@ -537,6 +563,80 @@ export default class DuniaScene extends Phaser.Scene {
     return true
   }
 
+
+    // ---------- Zona aman ----------
+  diZonaAman(x, y, margin = 0) {
+    return ZONA_AMAN.some(
+      ([zx, zy, zl, zt]) => x > zx - margin && x < zx + zl + margin && y > zy - margin && y < zy + zt + margin,
+    )
+  }
+
+  pemainAman() {
+    return this.peta === 'server' && this.diZonaAman(this.pemain.x, this.pemain.y + 10, 0)
+  }
+
+  perbaruiZonaAman() {
+    const aman = this.pemainAman()
+    if (aman === this.aman) return
+    this.aman = aman
+    this.game.events.emit('zona-aman', aman)
+  }
+
+  // ---------- NPC ----------
+  tambahNpc() {
+    for (const n of NPC_DUNIA) {
+      const sprite = this.add.image(n.x, n.y, `npc_${n.id}`).setOrigin(0.5, 1).setDepth(n.y)
+      this.add.text(n.x, n.y - 40, n.nama, GAYA_LABEL).setOrigin(0.5, 1).setDepth(DEPTH_UI)
+      this.tambahRintangan(n.x, n.y - 5, 18, 10)
+      this.interaktif.push({ jenis: 'npc', npc: n.id, jenisNpc: n.jenis, x: n.x, y: n.y + 4, radius: 58, label: n.label })
+      this.npcObj.set(n.id, sprite)
+    }
+  }
+
+  // ---------- Kelas ----------
+  // Menggambar ulang tekstur pemain sesuai kelas, tanpa mengubah nama teksturnya
+  terapkanKelasTekstur() {
+    const kelas = this.registry.get('kelas')?.id ?? 'ksatria'
+    if (this.game.kelasTeks === kelas) return
+    this.game.kelasTeks = kelas
+    const baju = this.registry.get('warna')?.baju ?? WARNA_BAJU[0]
+    for (const arah of ['bawah', 'atas', 'samping']) {
+      for (const n of [0, 1, 2]) {
+        this.gantiKanvas(`pemain_${arah}_${n}`, gambarKelas(kelas, arah, n, baju))
+        this.gantiKanvas(`pemain_${arah}_serang${n}`, gambarKelas(kelas, arah, 0, baju, n))
+      }
+    }
+  }
+
+  gantiKanvas(kunci, baru) {
+    const tekstur = this.textures.get(kunci)
+    const kanvas = tekstur.getSourceImage()
+    const ctx = kanvas.getContext('2d')
+    ctx.clearRect(0, 0, kanvas.width, kanvas.height)
+    ctx.drawImage(baru, 0, 0)
+    tekstur.refresh()
+  }
+
+  rentangSerang() {
+    return this.registry.get('kelas')?.jangkauan ?? JARAK_SERANG
+  }
+
+  // Bola sihir (hanya tampilan; damage dihitung server)
+  tembakProyektil(target) {
+    const orb = this.add.circle(this.pemain.x, this.pemain.y - 4, 5, 0x6fe4f0, 0.95).setDepth(DEPTH_UI - 1)
+    this.tweens.add({
+      targets: orb,
+      x: target.x,
+      y: target.y - target.info.tinggi / 2,
+      duration: 140,
+      onComplete: () => {
+        const ledakan = this.add.circle(orb.x, orb.y, 6, 0xffffff, 0.8).setDepth(DEPTH_UI - 1)
+        orb.destroy()
+        this.tweens.add({ targets: ledakan, scale: 2.4, alpha: 0, duration: 200, onComplete: () => ledakan.destroy() })
+      },
+    })
+  }
+
   // ---------- Status dari React ----------
   terapkanStatus() {
     const st = this.registry.get('status')
@@ -638,6 +738,7 @@ export default class DuniaScene extends Phaser.Scene {
 
   musuhMenyerang(m) {
     m.bolehSerang = this.time.now + m.info.jeda
+    if (this.pemainAman()) return
     if (m.data.jenis === 'bos') {
       // Gelombang area: pemain bisa menghindar kalau menjauh sebelum gelombang selesai
       const lingkar = this.add.circle(m.x, m.y - 24, 20, 0xff3030, 0.35).setDepth(DEPTH_UI)
@@ -654,10 +755,11 @@ export default class DuniaScene extends Phaser.Scene {
     this.game.events.emit('diserang', m.data.id)
   }
 
-  perbaruiMusuh(dt) {
+    perbaruiMusuh(dt) {
     if (this.spawnObj.size === 0) return
     const sekarang = Date.now() + (this.registry.get('selisihWaktu') ?? 0)
     const pemainHidup = !this.registry.get('mati')
+    const pemainAman = this.pemainAman()
 
     for (const m of this.spawnObj.values()) {
       const d = m.data
@@ -716,11 +818,12 @@ export default class DuniaScene extends Phaser.Scene {
         const jarakPemain = Phaser.Math.Distance.Between(this.pemain.x, this.pemain.y + 8, m.x, m.y)
         const jarakPatroli = Phaser.Math.Distance.Between(m.x, m.y, patrol.x, patrol.y)
 
-        if (!pemainHidup && m.aggro) {
+        // Pemain gugur atau masuk zona aman: musuh menyerah dan kembali berpatroli
+        if ((!pemainHidup || pemainAman) && m.aggro) {
           m.aggro = false
           m.kembali = true
         }
-        if (!m.aggro && pemainHidup && jarakPemain < info.aggro) {
+        if (!m.aggro && pemainHidup && !pemainAman && jarakPemain < info.aggro) {
           m.aggro = true
           m.kembali = false
           m.bolehSerang = this.time.now + 600
@@ -734,9 +837,18 @@ export default class DuniaScene extends Phaser.Scene {
           arahX = this.pemain.x - m.x
           if (jarakPemain > info.jangkauan) {
             const k = (info.kejar * dt) / jarakPemain
-            m.x += arahX * k
-            m.y += (this.pemain.y + 8 - m.y) * k
-            gerak = true
+            const nx = m.x + arahX * k
+            const ny = m.y + (this.pemain.y + 8 - m.y) * k
+            if (this.diZonaAman(nx, ny, info.radius * 0.4)) {
+              // Musuh tidak boleh masuk kota: berhenti di tepi lalu kembali
+              m.aggro = false
+              m.kembali = true
+              gerak = false
+            } else {
+              m.x = nx
+              m.y = ny
+              gerak = true
+            }
           } else {
             gerak = false
             if (this.time.now >= m.bolehSerang) this.musuhMenyerang(m)
@@ -749,9 +861,17 @@ export default class DuniaScene extends Phaser.Scene {
           } else {
             const k = (info.kecepatan * 1.6 * dt) / jarakPatroli
             arahX = patrol.x - m.x
-            m.x += arahX * k
-            m.y += (patrol.y - m.y) * k
-            gerak = true
+            const nx = m.x + arahX * k
+            const ny = m.y + (patrol.y - m.y) * k
+            if (this.diZonaAman(nx, ny, info.radius * 0.4)) {
+              m.kembali = false
+              m.x = patrol.x
+              m.y = patrol.y
+            } else {
+              m.x = nx
+              m.y = ny
+              gerak = true
+            }
           }
         } else {
           m.x = patrol.x
@@ -783,13 +903,14 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
   // ---------- Tebasan ----------
-  cariTarget(titik) {
+   cariTarget(titik) {
+    const jangkauan = this.rentangSerang()
     let terbaik = null
     let skor = Infinity
     for (const m of this.spawnObj.values()) {
       if (m.keadaan !== 'hidup') continue
       const jarakPemain = Phaser.Math.Distance.Between(this.pemain.x, this.pemain.y, m.x, m.y)
-      if (jarakPemain > JARAK_SERANG + m.info.radius) continue
+      if (jarakPemain > jangkauan + m.info.radius) continue
       const nilai = titik
         ? Phaser.Math.Distance.Between(titik.x, titik.y, m.x, m.y - m.info.tinggi / 2)
         : jarakPemain
@@ -806,6 +927,13 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.menyerang || this.registry.get('terkunci') || this.registry.get('mati')) return
     if (this.time.now < this.bolehSerangLagi) return
     if (this.registry.get('forage')) this.game.events.emit('forage-batal')
+    if (this.pemainAman()) {
+      if (this.time.now > this.pesanAmanBerikut) {
+        this.pesanAmanBerikut = this.time.now + 1500
+        this.teksMelayang(this.pemain.x, this.pemain.y - 30, 'Zona aman', '#9be37a')
+      }
+      return
+    }
     this.bolehSerangLagi = this.time.now + (this.registry.get('jedaSerang') ?? 420)
     this.menyerang = true
     this.pernahSerang = true
@@ -827,7 +955,11 @@ export default class DuniaScene extends Phaser.Scene {
     this.time.delayedCall(260, () => {
       this.menyerang = false
     })
-    if (target) this.game.events.emit('serang', target.data.id)
+
+    if (target) {
+      if (this.registry.get('kelas')?.id === 'penyihir') this.tembakProyektil(target)
+      this.game.events.emit('serang', target.data.id)
+    }
   }
 
   teksMelayang(x, y, teks, warna) {
@@ -885,28 +1017,29 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
     // ---------- Pemain lain (multiplayer) ----------
-  pastikanWarna(baju) {
-    const kunci = baju.replace('#', '')
+  pastikanWarna(baju, kelas) {
+    const kunci = `${kelas}_${baju.replace('#', '')}`
     if (!this.textures.exists(`pl_${kunci}_bawah_0`)) {
       for (const arah of ['bawah', 'atas', 'samping']) {
         for (const n of [0, 1, 2]) {
-          this.textures.addCanvas(`pl_${kunci}_${arah}_${n}`, gambarPemain(arah, n, baju))
+          this.textures.addCanvas(`pl_${kunci}_${arah}_${n}`, gambarKelas(kelas, arah, n, baju))
         }
-        this.textures.addCanvas(`pl_${kunci}_${arah}_s`, gambarPemain(arah, 0, baju, 1))
+        this.textures.addCanvas(`pl_${kunci}_${arah}_s`, gambarKelas(kelas, arah, 0, baju, 1))
       }
     }
     return kunci
   }
 
   buatPemainLain(id) {
-    const kunci = this.pastikanWarna(warnaDariNama(id).baju)
+    const kelas = this.kelasPemain.get(id) ?? 'ksatria'
+    const kunci = this.pastikanWarna(warnaDariNama(id).baju, kelas)
     const sprite = this.add.sprite(0, 0, `pl_${kunci}_bawah_0`)
     const label = this.add
       .text(0, 0, this.namaPemain.get(id) ?? '…', GAYA_LABEL)
       .setOrigin(0.5, 1)
       .setDepth(DEPTH_UI)
     const o = {
-      id, sprite, label, kunci,
+      id, sprite, label, kunci, kelas,
       x: undefined, y: undefined, tx: 0, ty: 0,
       a: 'bawah', f: false, g: false, serangSampai: 0, terakhir: 0,
     }
@@ -930,10 +1063,17 @@ export default class DuniaScene extends Phaser.Scene {
     if (d.s) o.serangSampai = this.time.now + 260
   }
 
-  pemainLainNama(id, nama) {
+  pemainLainNama(id, nama, kelas) {
     if (!this.pemainLain) return
     this.namaPemain.set(id, nama)
-    this.pemainLain.get(id)?.label.setText(nama)
+    if (kelas) this.kelasPemain.set(id, kelas)
+    const o = this.pemainLain.get(id)
+    if (!o) return
+    o.label.setText(nama)
+    if (kelas && kelas !== o.kelas) {
+      o.kelas = kelas
+      o.kunci = this.pastikanWarna(warnaDariNama(id).baju, kelas)
+    }
   }
 
   pemainLainKeluar(id) {
@@ -959,6 +1099,7 @@ export default class DuniaScene extends Phaser.Scene {
     if (!this.pemainLain || this.peta !== 'server') return
     for (const p of daftar) {
       if (p.nama) this.namaPemain.set(p.id, p.nama)
+      if (p.kelas) this.kelasPemain.set(p.id, p.kelas)
       this.pemainLainPosisi(p.id, p)
     }
   }
@@ -1164,6 +1305,7 @@ export default class DuniaScene extends Phaser.Scene {
     // Urutan gambar berdasarkan titik kaki, sama seperti objek dunia
     this.pemain.setDepth(this.pemain.y + 16)
     this.labelSaya.setPosition(this.pemain.x, this.pemain.y - 20)
+    this.perbaruiZonaAman()
     this.kirimPosisiSaya()
     this.perbaruiPemainLain(dt)
     this.perbaruiGelembung()

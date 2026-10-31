@@ -8,9 +8,9 @@ export const POSISI_PETAK = Array.from({ length: 12 }, (_, i) => ({
 // Rute patroli (loop tertutup). Indeksnya dipakai kolom `rute` di tabel game_spawn.
 const RUTE = [
   [[140, 360], [480, 360], [480, 560], [140, 560]],
-  [[140, 720], [480, 720], [480, 960], [140, 960]],
+  [[140, 720], [400, 720], [400, 900], [140, 900]],
   [[260, 560], [500, 680], [260, 800]],
-  [[1100, 700], [1480, 700], [1480, 1000], [1100, 1000]],
+  [[1140, 700], [1480, 700], [1480, 1000], [1140, 1000]],
   [[1200, 780], [1420, 860], [1200, 960]],
   [[540, 280], [640, 280], [640, 500], [540, 500]],
   [[620, 400], [980, 400], [980, 620], [620, 620]],
@@ -75,7 +75,7 @@ export const PETA = {
     ],
     obor: [{ x: 1280, y: 330 }, { x: 1440, y: 330 }, { x: 1360, y: 430 }],
     label: [
-      { x: 800, y: 1075, teks: 'Desa Citana' },
+      { x: 800, y: 1075, teks: 'Desa Citana (zona aman)' },
       { x: 800, y: 110, teks: 'Gedung Kesenian Bung Karno' },
       { x: 300, y: 300, teks: 'Berangbang' },
       { x: 800, y: 370, teks: 'Jalan Hasanudin' },
@@ -308,4 +308,17 @@ export const TITIK_FORAGE = [
   { id: 116, forage: 'bijih_obsidian', x: 130, y: 170 },
   { id: 117, forage: 'bijih_obsidian', x: 100, y: 100 },
   { id: 118, forage: 'bijih_mitril', x: 90, y: 235 },
+]
+
+// Musuh tidak bisa masuk ke area ini dan pemain tidak bisa menyerang di dalamnya.
+// Bentuk: [x, y, lebar, tinggi]
+export const ZONA_AMAN = [
+  [590, 790, 495, 410], // plaza dan desa
+  [430, 950, 170, 100], // jalan menuju gerbang rumah
+]
+
+export const NPC_DUNIA = [
+  { id: 'kapten', nama: 'Kapten Rowan', x: 860, y: 850, jenis: 'misi', label: 'Bicara dengan Kapten Rowan' },
+  { id: 'herbalis', nama: 'Herbalis Mira', x: 700, y: 1045, jenis: 'misi', label: 'Bicara dengan Herbalis Mira' },
+  { id: 'guru', nama: 'Guru Elara', x: 935, y: 1045, jenis: 'kelas', label: 'Bicara dengan Guru Elara' },
 ]
