@@ -1075,3 +1075,184 @@ main.lebar .game-area { max-width: none; }
 .tombol-bahaya { color: #ffffff; background: #c0392b; border-color: #c0392b; }
 .tombol-bahaya:disabled { opacity: 0.5; cursor: not-allowed; }
 .tautan-bahaya { color: #d94a3d; }
+
+/* ===== Mode HP: tampilan mirip Game Boy ===== */
+.gb-rangka {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  overflow: hidden;
+  background: var(--bg);
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* Potret: layar di atas, kontrol di bawah */
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto auto 1fr;
+  grid-template-areas:
+    'layar layar'
+    'hud hud'
+    'menu menu'
+    'kiri kanan';
+}
+.gb-rangka .layout-game { display: contents; }
+.gb-rangka .game-bingkai { grid-area: layar; align-self: start; width: 100%; max-width: none; margin: 0; }
+.gb-rangka .gb-hud { grid-area: hud; }
+.gb-rangka > .aksi {
+  grid-area: menu;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  justify-content: center;
+}
+.gb-rangka > .aksi .tombol { padding: 6px 10px; font-size: 0.82rem; text-decoration: none; }
+.gb-rangka > .aksi .redup,
+.gb-rangka > .aksi input[type='range'] { display: none; }
+.gb-rangka .gb-kontrol { display: contents; }
+.gb-rangka .gb-dpad { grid-area: kiri; justify-self: start; align-self: center; }
+.gb-rangka .gb-tombol { grid-area: kanan; justify-self: end; align-self: center; }
+
+/* HUD pemain sebagai strip di luar layar */
+.hud.hud-strip {
+  position: static;
+  inset: auto;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 6px;
+  pointer-events: auto;
+}
+.hud-strip .hud-kiri,
+.hud-strip .hud-kanan { position: static; width: auto; padding: 5px 8px; gap: 3px; }
+.hud-strip .hud-kanan { font-size: 0.72rem; }
+.hud-strip .hud-detail { display: none; }
+
+/* Bar musuh dan pengumpulan tipis di atas layar */
+.gb-rangka .hud-tengah { top: 4px; width: min(300px, 90%); padding: 4px 8px; }
+.gb-rangka .hud-forage { bottom: 38px; width: min(240px, 80%); padding: 4px 6px; }
+.gb-toast {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 6;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  color: #ffffff;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* D-pad: satu permukaan sentuh berbentuk salib */
+.gb-dpad { position: relative; width: 140px; height: 140px; touch-action: none; }
+.gb-dpad::before,
+.gb-dpad::after { content: ''; position: absolute; background: var(--line); border-radius: 10px; }
+.gb-dpad::before { left: 0; right: 0; top: 36%; bottom: 36%; }
+.gb-dpad::after { top: 0; bottom: 0; left: 36%; right: 36%; }
+.gb-panah {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 33%;
+  height: 33%;
+  font-size: 1rem;
+  color: var(--fg);
+  pointer-events: none;
+}
+.gb-atas { top: 2%; left: 33.5%; }
+.gb-bawah { bottom: 2%; left: 33.5%; }
+.gb-kiri { left: 2%; top: 33.5%; }
+.gb-kanan { right: 2%; top: 33.5%; }
+
+/* Tombol A dan B diagonal seperti Game Boy */
+.gb-tombol { position: relative; width: 150px; height: 120px; }
+.gb-aksi {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--field);
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  touch-action: none;
+}
+.gb-aksi strong { font-size: 1.2rem; line-height: 1; }
+.gb-aksi small { font-size: 0.6rem; color: var(--muted); }
+.gb-aksi:active { background: var(--line); }
+.gb-a { right: 0; top: 4px; }
+.gb-b { left: 0; bottom: 4px; }
+
+/* Chat sebagai laci */
+.gb-rangka .layout-game > .layout-chat {
+  position: fixed;
+  z-index: 2050;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  grid-column: auto;
+  grid-row: auto;
+  height: min(60dvh, 460px);
+  min-height: 0;
+  padding: 8px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  transform: translateY(105%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s 0.2s;
+}
+.gb-rangka .layout-game > .layout-chat.terbuka {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.2s ease;
+}
+.gb-rangka .layout-chat > .game-chat { position: static; inset: auto; height: calc(100% - 38px); }
+.gb-tutup-chat { margin-bottom: 6px; }
+
+/* Panel layar penuh */
+.gb-rangka .game-panel { position: fixed; inset: 8px; z-index: 2100; max-height: none; }
+
+/* ===== Lanskap: gaya Game Boy Advance ===== */
+@media (orientation: landscape) {
+  .gb-rangka {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'hud layar menu'
+      'kiri layar kanan';
+  }
+  .gb-rangka .game-bingkai {
+    align-self: center;
+    width: min(calc((100dvh - 24px) * 1.5), calc(100vw - 270px));
+  }
+  .gb-rangka > .aksi { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+  .hud.hud-strip { grid-template-columns: 1fr; }
+  .hud-strip .hud-hadiah { display: none; }
+  .gb-rangka .gb-dpad { width: 112px; height: 112px; justify-self: center; align-self: end; }
+  .gb-rangka .gb-tombol { width: 120px; height: 100px; justify-self: center; align-self: end; }
+  .gb-aksi { width: 56px; height: 56px; }
+  .gb-rangka .layout-game > .layout-chat {
+    left: auto;
+    top: 0;
+    width: min(46vw, 380px);
+    height: auto;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    transform: translateX(105%);
+  }
+  .gb-rangka .layout-game > .layout-chat.terbuka { transform: none; }
+}

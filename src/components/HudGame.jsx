@@ -1,8 +1,8 @@
 const format = (n) => n.toLocaleString('id-ID')
 
-export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sisaReset, peta, target, bos, bosTeks, forage, aman }) {
+function BlokPemain({ pemain: p, hp, persenHp, persenXp, harian, sisaReset, peta, aman }) {
   return (
-    <div className="hud">
+    <>
       <div className="hud-kiri">
         <div className="hud-nama">
           <strong>{p.nama}</strong> · Lv {p.level}
@@ -20,11 +20,17 @@ export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sis
       <div className="hud-kanan">
         <span>Gold {format(p.gold)}</span>
         <span>ATK {p.attack} · DEF {p.defense}</span>
-        <span>Hadiah {harian.berhadiah}/{harian.batas}</span>
-        <small>{peta === 'server' ? 'Kerajaan' : 'Rumah'} · reset {sisaReset}</small>
+        <span className="hud-hadiah">Hadiah {harian.berhadiah}/{harian.batas}</span>
+        <small className="hud-detail">{peta === 'server' ? 'Kerajaan' : 'Rumah'} · reset {sisaReset}</small>
         {aman && <strong className="hud-aman">Zona aman</strong>}
       </div>
+    </>
+  )
+}
 
+function BlokMusuh({ target, bos, bosTeks, forage }) {
+  return (
+    <>
       {(target || bos) && (
         <div className="hud-tengah">
           {target && (
@@ -60,6 +66,23 @@ export default function HudGame({ pemain: p, hp, persenHp, persenXp, harian, sis
           </div>
         </div>
       )}
+    </>
+  )
+}
+
+// bagian: 'semua' (PC, di atas layar), 'pemain' (strip di luar layar), 'musuh' (bar tipis di atas layar)
+export default function HudGame({ bagian = 'semua', ...props }) {
+  if (bagian === 'pemain') {
+    return (
+      <div className="hud hud-strip">
+        <BlokPemain {...props} />
+      </div>
+    )
+  }
+  return (
+    <div className="hud">
+      {bagian === 'semua' && <BlokPemain {...props} />}
+      <BlokMusuh {...props} />
     </div>
   )
 }

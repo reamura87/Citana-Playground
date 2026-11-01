@@ -30,6 +30,8 @@ import { useAuth, useSesi } from '../lib/useSesi'
 import PembuatKarakter from '../components/PembuatKarakter'
 import { suara } from '../game/suara'
 import { useSuara } from '../lib/useSuara'
+import KontrolGB from '../components/KontrolGB'
+import { useModeHP } from '../lib/useModeHP'
 
 const format = (n) => n.toLocaleString('id-ID')
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
@@ -142,6 +144,18 @@ export default function GamePage() {
   })
   const mpApi = useRef({})
 
+    const modeHP = useModeHP()
+  const [chatBuka, setChatBuka] = useState(false)
+  const [idDibaca, setIdDibaca] = useState(0)
+  const idTerakhir = chat.pesan.length > 0 ? chat.pesan[chat.pesan.length - 1].id : 0
+  const belumBaca = chatBuka
+    ? 0
+    : chat.pesan.filter((m) => m.id > idDibaca && m.penulis_id !== userId).length
+  function alihChat() {
+    setIdDibaca(idTerakhir)
+    setChatBuka((b) => !b)
+  }
+
   useEffect(() => {
     mpApi.current = { kirimPosisi, sinkron }
   })
@@ -204,6 +218,39 @@ export default function GamePage() {
     const t = setTimeout(() => setCatatan(''), 6000)
     return () => clearTimeout(t)
   }, [catatan])
+
+    // Mode HP: halaman dikunci satu layar (tidak bisa di-scroll atau ditarik untuk refresh)
+  useEffect(() => {
+    if (!modeHP) return
+    const bodyLama = document.body.style.overflow
+    const htmlLama = document.documentElement.style.overscrollBehavior
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overscrollBehavior = 'none'
+    return () => {
+      document.body.style.overflow = bodyLama
+      document.documentElement.style.overscrollBehavior = htmlLama
+    }
+  }, [modeHP])
+
+  // Notifikasi di mode HP hilang sendiri
+  useEffect(() => {
+    if (!modeHP || !catatan) return
+    const t = setTimeout(() => setCatatan(''), 4500)
+    return () => clearTimeout(t)
+  }, [modeHP, catatan])
+
+  // Ukuran game disesuaikan saat layar diputar atau jendela berubah
+  useEffect(() => {
+    function segarkan() {
+      setTimeout(() => gameRef.current?.scale.refresh(), 150)
+    }
+    window.addEventListener('orientationchange', segarkan)
+    window.addEventListener('resize', segarkan)
+    return () => {
+      window.removeEventListener('orientationchange', segarkan)
+      window.removeEventListener('resize', segarkan)
+    }
+  }, [])
 
   useEffect(() => {
     if (!target) return
@@ -601,59 +648,50 @@ export default function GamePage() {
         : 'Dikalahkan'
     : ''
 
-  function tombolArah(arah, simbol) {
-    const atur = (nilai) => {
-      kontrol.current[arah] = nilai
-    }
-    return (
-      <button
-        key={arah}
-        type="button"
-        className={`dpad-${arah}`}
-        aria-label={`Gerak ${arah}`}
-        onPointerDown={(e) => {
-          e.preventDefault()
-          atur(true)
-        }}
-        onPointerUp={() => atur(false)}
-        onPointerLeave={() => atur(false)}
-        onPointerCancel={() => atur(false)}
-      >
-        {simbol}
-      </button>
-    )
+    const propHud = {
+    pemain: p,
+    hp: hpTampil,
+    persenHp,
+    persenXp,
+    harian: status.harian,
+    sisaReset,
+    peta,
+    target,
+    bos: peta === 'server' ? bos : null,
+    bosTeks,
+    forage,
+    aman,
+  }
+
+  function aturArah(arah) {
+    Object.assign(kontrol.current, arah)
   }
 
   return (
     <>
       <h1>Citana World</h1>
-        <div className="game-area">
+              <div className={`game-area${modeHP ? ' gb-rangka' : ''}`}>
         <div className="layout-game">
           <div className="game-bingkai">
             <div ref={wadah} className="game-kanvas" />
-            <HudGame
-              pemain={p}
-              hp={hpTampil}
-              persenHp={persenHp}
-              persenXp={persenXp}
-              harian={status.harian}
-              sisaReset={sisaReset}
-              peta={peta}
-              target={target}
-              bos={peta === 'server' ? bos : null}
-              bosTeks={bosTeks}
-              forage={forage}
-              aman={aman}
-            />
+            <HudGame bagian={modeHP ? 'musuh' : 'semua'} {...propHud} />
             {sisaMati && (
               <div className="game-mati" role="alert">
                 <strong>Kamu gugur</strong>
                 <span>Hidup kembali di desa dalam {sisaMati}</span>
               </div>
             )}
+            {modeHP && catatan && (
+              <p className="gb-toast" role="status">{catatan}</p>
+            )}
           </div>
 
-          <aside className="layout-chat" aria-label="Chat">
+          <aside className={`layout-chat${chatBuka ? ' terbuka' : ''}`} aria-label="Chat">
+            {modeHP && (
+              <button type="button" className="tombol kecil gb-tutup-chat" onClick={alihChat}>
+                Tutup chat
+              </button>
+            )}
             {peta !== 'server' ? (
               <div className="game-chat">
                 <p className="redup kecil">
@@ -686,13 +724,28 @@ export default function GamePage() {
           </aside>
         </div>
 
+        {modeHP && (
+          <div className="gb-hud">
+            <HudGame bagian="pemain" {...propHud} />
+          </div>
+        )}
+
         <div className="aksi">
-          <button type="button" className="tombol" onClick={() => setPanel('inventaris')}>Inventaris</button>
-          <button type="button" className="tombol" onClick={() => setPanel('status')}>
-            Status{p.poin_sisa > 0 ? ` (${p.poin_sisa} poin)` : ''}
+          {modeHP && <Link to="/" className="tombol">Keluar</Link>}
+          <button type="button" className="tombol" onClick={() => setPanel('inventaris')}>
+            {modeHP ? 'Tas' : 'Inventaris'}
           </button>
-                    <button type="button" className="tombol" aria-pressed={suaraNyala} onClick={() => suara.setNyala(!suaraNyala)}>
-            Suara: {suaraNyala ? 'nyala' : 'mati'}
+          <button type="button" className="tombol" onClick={() => setPanel('status')}>
+            Status
+            {p.poin_sisa > 0 ? (modeHP ? ` (${p.poin_sisa})` : ` (${p.poin_sisa} poin)`) : ''}
+          </button>
+          {modeHP && (
+            <button type="button" className="tombol" onClick={alihChat}>
+              Chat{belumBaca > 0 ? ` (${belumBaca})` : ''}
+            </button>
+          )}
+          <button type="button" className="tombol" aria-pressed={suaraNyala} onClick={() => suara.setNyala(!suaraNyala)}>
+            {modeHP ? (suaraNyala ? 'Suara' : 'Mute') : `Suara: ${suaraNyala ? 'nyala' : 'mati'}`}
           </button>
           <input
             type="range"
@@ -709,40 +762,17 @@ export default function GamePage() {
           <span className="redup kecil">Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E</span>
         </div>
 
-        
+        {!modeHP && catatan && <p className="game-catatan" role="status">{catatan}</p>}
 
-        {catatan && <p className="game-catatan" role="status">{catatan}</p>}
-
-        <div className="game-kontrol" aria-label="Kontrol layar sentuh">
-          <div className="game-dpad">
-            {tombolArah('atas', '▲')}
-            {tombolArah('kiri', '◀')}
-            {tombolArah('kanan', '▶')}
-            {tombolArah('bawah', '▼')}
-          </div>
-          <div className="game-tombol-kanan">
-            <button
-              type="button"
-              className="game-aksi"
-              onPointerDown={(e) => {
-                e.preventDefault()
-                kontrol.current.serang = true
-              }}
-            >
-              Serang
-            </button>
-            <button
-              type="button"
-              className="game-aksi"
-              onPointerDown={(e) => {
-                e.preventDefault()
-                kontrol.current.aksi = true
-              }}
-            >
-              Aksi
-            </button>
-          </div>
-        </div>
+        <KontrolGB
+          onArah={aturArah}
+          onSerang={() => {
+            kontrol.current.serang = true
+          }}
+          onAksi={() => {
+            kontrol.current.aksi = true
+          }}
+        />
 
         {panel && (
           <div className="game-panel" role="dialog" aria-modal="true">
