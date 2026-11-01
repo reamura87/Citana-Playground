@@ -101,6 +101,8 @@ export default function GamePage() {
   const { nyala: suaraNyala, volume: suaraVolume } = useSuara()
   const emasLalu = useRef(null)
   const levelLalu = useRef(null)
+  const [waktuPaksa, setWaktuPaksa] = useState('otomatis')
+  const waktuRef = useRef(null)
   
   const [aman, setAman] = useState(false)
   const forageRef = useRef(null)
@@ -302,6 +304,7 @@ export default function GamePage() {
       gameRef.current = game
       game.registry.set('dunia', duniaRef.current)
       game.registry.set('alat', alatRef.current)
+      game.registry.set('waktuPaksa', waktuRef.current)
       game.events.on('interaksi', (o) => aksiRef.current?.(o))
       game.events.on('serang', (id) => serangRef.current?.(id))
       game.events.on('diserang', (id) => diserangRef.current?.(id))
@@ -364,6 +367,12 @@ export default function GamePage() {
     levelLalu.current = level
     emasLalu.current = gold
   }, [status])
+
+    // Waktu paksa (khusus tampilan admin sendiri)
+  useEffect(() => {
+    waktuRef.current = waktuPaksa === 'otomatis' ? null : waktuPaksa
+    gameRef.current?.registry.set('waktuPaksa', waktuRef.current)
+  }, [waktuPaksa])
 
 
   // Kirim status dan keadaan dunia terbaru ke game
@@ -860,6 +869,8 @@ export default function GamePage() {
                 status={status}
                 katalog={katalog}
                 sibuk={sibuk}
+                waktu={waktuPaksa}
+                onWaktu={setWaktuPaksa}
                 onPakaiGratis={(id) => jalankan(() => adminPakai(id), 'Perlengkapan dipakai (gratis).')}
                 onSimpanKarakter={(kelas, kustom) =>
                   jalankan(() => adminAturKarakter(kelas, kustom), 'Karakter diperbarui.')
@@ -1067,7 +1078,7 @@ function PanelInfoKelas({ status, katalog }) {
   )
 }
 
-function PanelDebug({ status, katalog, sibuk, onPakaiGratis, onSimpanKarakter }) {
+function PanelDebug({ status, katalog, sibuk, waktu, onWaktu, onPakaiGratis, onSimpanKarakter }) {
   const [bagian, setBagian] = useState('menu')
   const [tab, setTab] = useState('senjata')
   const p = status.pemain
@@ -1101,6 +1112,27 @@ function PanelDebug({ status, katalog, sibuk, onPakaiGratis, onSimpanKarakter })
           Ubah penampilan dan role
         </button>
       </div>
+
+      <h3>Waktu dunia (hanya terlihat olehmu)</h3>
+      <div className="aksi" role="group" aria-label="Waktu dunia">
+        {[
+          ['otomatis', 'Otomatis'],
+          ['siang', 'Siang'],
+          ['senja', 'Senja'],
+          ['malam', 'Malam'],
+          ['subuh', 'Subuh'],
+        ].map(([kode, nama]) => (
+          <button key={kode} type="button" className="tombol" aria-pressed={waktu === kode} onClick={() => onWaktu(kode)}>
+            {nama}
+          </button>
+        ))}
+      </div>
+      <p className="redup kecil">
+        Otomatis mengikuti jam nyata WITA: gelap sekitar 18.30 sampai 05.00. Pilihan ini hanya mengubah tampilan layarmu
+        sendiri, tidak dikirim ke pemain lain.
+      </p>
+
+
       <h3>Pakai perlengkapan gratis</h3>
       <div className="aksi" role="group" aria-label="Jenis perlengkapan">
         {[['senjata', 'Senjata'], ['armor', 'Armor']].map(([kode, nama]) => (

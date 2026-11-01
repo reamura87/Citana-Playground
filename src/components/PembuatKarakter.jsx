@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { NAMA_GAYA_RAMBUT, PALET_BAJU, PALET_KULIT, PALET_RAMBUT, gambarKelas, rupaDariKustom } from '../game/gambar'
+import { NAMA_GAYA_RAMBUT, PALET_BAJU, PALET_KULIT, PALET_RAMBUT, rupaDariKustom } from '../game/gambar'
+import { gambarKelas } from '../game/seni'
 
 const AWAL = { kulit: 1, rambut: 0, gaya: 0, baju: 0 }
 

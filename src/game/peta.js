@@ -156,44 +156,115 @@ export function gambarTanah(peta) {
   kanvas.height = tinggi
   const ctx = kanvas.getContext('2d')
   const rnd = acak(peta === 'server' ? 11 : 29)
+  const kotak = (warna, x, y, w, h) => {
+    ctx.fillStyle = warna
+    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+  }
+  const pilih = (daftar) => daftar[Math.floor(rnd() * daftar.length)]
 
-  ctx.fillStyle = '#5a9e4b'
-  ctx.fillRect(0, 0, lebar, tinggi)
-  for (let i = 0; i < 4200; i += 1) {
-    ctx.fillStyle = rnd() > 0.5 ? '#63a954' : '#4f9042'
-    ctx.fillRect(Math.floor((rnd() * lebar) / 4) * 4, Math.floor((rnd() * tinggi) / 4) * 4, 4, 4)
+  // Rumput bertekstur
+  kotak('#5a9e4b', 0, 0, lebar, tinggi)
+  for (let i = 0; i < 9000; i += 1) {
+    const r = rnd()
+    kotak(r < 0.4 ? '#63a954' : r < 0.7 ? '#4f9042' : '#6db35d', Math.floor((rnd() * lebar) / 2) * 2, Math.floor((rnd() * tinggi) / 2) * 2, 4, 2)
+  }
+  for (let i = 0; i < 2600; i += 1) {
+    const x = Math.floor(rnd() * lebar)
+    const y = Math.floor(rnd() * tinggi)
+    kotak('#3f7f35', x, y, 1, 3)
+    kotak('#7cc56a', x + 1, y + 1, 1, 2)
+  }
+  for (let i = 0; i < 380; i += 1) {
+    const x = Math.floor(rnd() * lebar)
+    const y = Math.floor(rnd() * tinggi)
+    kotak(pilih(['#f5f0e0', '#f2c94c', '#e87aa6', '#8fb4f5']), x, y, 2, 2)
+    kotak('#3f7f35', x, y + 2, 1, 2)
   }
 
+  // Jalan tanah dengan tepi gelap, bagian tengah terang, dan kerikil
   const jalur = (x1, y1, x2, y2, tebal) => {
-    ctx.strokeStyle = '#b8a07a'
-    ctx.lineWidth = tebal
-    ctx.lineCap = 'round'
-    ctx.beginPath()
-    ctx.moveTo(x1, y1)
-    ctx.lineTo(x2, y2)
-    ctx.stroke()
+    const gambar = (warna, lw) => {
+      ctx.strokeStyle = warna
+      ctx.lineWidth = lw
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.stroke()
+    }
+    gambar('#8a7352', tebal + 8)
+    gambar('#b8a07a', tebal)
+    gambar('#c8b38c', Math.max(4, tebal - 14))
+    const panjang = Math.hypot(x2 - x1, y2 - y1)
+    for (let i = 0; i < panjang / 4; i += 1) {
+      const u = rnd()
+      kotak(
+        rnd() > 0.5 ? '#9a8660' : '#d8c9a4',
+        x1 + (x2 - x1) * u + (rnd() - 0.5) * tebal * 0.8,
+        y1 + (y2 - y1) * u + (rnd() - 0.5) * tebal * 0.8,
+        2,
+        2,
+      )
+    }
+  }
+
+  // Batu kali: tiap batu punya sorotan atas dan bayangan bawah
+  const kerikil = (x, y, w, h) => {
+    const warna = ['#9a9ea6', '#a9adb5', '#8d9098', '#b3b7be']
+    kotak('#6f737b', x, y, w, h)
+    for (let yy = y, baris = 0; yy < y + h; yy += 10, baris += 1) {
+      let xx = x - (baris % 2) * 9
+      while (xx < x + w) {
+        const lb = 14 + Math.floor(rnd() * 9)
+        const xa = Math.max(xx, x)
+        const xb = Math.min(xx + lb, x + w)
+        const tb = Math.min(8, y + h - yy - 1)
+        if (xb - xa > 3 && tb > 2) {
+          kotak(pilih(warna), xa + 1, yy + 1, xb - xa - 2, tb)
+          kotak('rgba(255,255,255,0.2)', xa + 1, yy + 1, xb - xa - 2, 1)
+          kotak('rgba(0,0,0,0.16)', xa + 1, yy + tb, xb - xa - 2, 1)
+        }
+        xx += lb
+      }
+    }
   }
 
   if (peta === 'server') {
-    ctx.fillStyle = 'rgba(30,80,40,0.35)'
-    ctx.fillRect(80, 280, 460, 720)
-
-    for (let i = 0; i < 19; i += 1) {
-      ctx.fillStyle = i % 2 === 0 ? '#b59a4a' : '#a58a3c'
-      ctx.fillRect(1060, 640 + i * 24, 440, 16)
+    // Hutan: lantai gelap dengan daun gugur
+    kotak('rgba(30,80,40,0.35)', 80, 280, 460, 720)
+    for (let i = 0; i < 500; i += 1) {
+      kotak(pilih(['#3f6b34', '#7a5a2a', '#2f5a2a']), 80 + rnd() * 456, 280 + rnd() * 716, 3, 2)
     }
 
-    ctx.fillStyle = '#9b8560'
-    ctx.fillRect(1060, 450, 260, 200)
+    // Padang gandum
+    for (let i = 0; i < 19; i += 1) kotak(i % 2 === 0 ? '#b59a4a' : '#a58a3c', 1060, 640 + i * 24, 440, 16)
+    for (let i = 0; i < 260; i += 1) kotak('#d4b95a', 1060 + rnd() * 436, 640 + rnd() * 430, 2, 4)
 
-    ctx.fillStyle = '#7f8b79'
-    for (let i = 0; i < 40; i += 1) ctx.fillRect(560 + rnd() * 440, 380 + rnd() * 240, 28, 20)
+    // Perkemahan orc: tanah injak dengan kerikil
+    kotak('#9b8560', 1060, 450, 260, 200)
+    for (let i = 0; i < 160; i += 1) kotak(pilih(['#8a7352', '#b3a07c']), 1060 + rnd() * 256, 450 + rnd() * 196, 3, 2)
 
-    ctx.fillStyle = '#6b6560'
-    ctx.fillRect(1160, 60, 400, 400)
-    for (let i = 0; i < 320; i += 1) {
-      ctx.fillStyle = rnd() > 0.5 ? '#7b756f' : '#5a554f'
-      ctx.fillRect(1160 + rnd() * 392, 60 + rnd() * 392, 8, 8)
+    // Reruntuhan: lempengan batu berlumut
+    for (let i = 0; i < 40; i += 1) {
+      const x = 560 + rnd() * 440
+      const y = 380 + rnd() * 240
+      kotak('#7f8b79', x, y, 28, 20)
+      kotak('rgba(255,255,255,0.15)', x, y, 28, 1)
+      kotak('#6f8b5f', x + rnd() * 20, y + rnd() * 12, 6, 3)
+    }
+
+    // Sarang naga: batu gelap retak
+    kotak('#6b6560', 1160, 60, 400, 400)
+    for (let i = 0; i < 320; i += 1) kotak(rnd() > 0.5 ? '#7b756f' : '#5a554f', 1160 + rnd() * 392, 60 + rnd() * 392, 8, 8)
+    for (let i = 0; i < 26; i += 1) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      const x = 1170 + rnd() * 380
+      const y = 70 + rnd() * 380
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + (rnd() - 0.5) * 50, y + (rnd() - 0.5) * 50)
+      ctx.stroke()
     }
 
     jalur(800, 300, 800, 840, 70)
@@ -203,52 +274,46 @@ export function gambarTanah(peta) {
     jalur(1250, 420, 1340, 350, 50)
     jalur(470, 1000, 600, 1000, 50)
 
-    ctx.fillStyle = '#9a9ea6'
-    ctx.fillRect(600, 800, 400, 300)
-    ctx.fillStyle = '#8a8e96'
-    for (let x = 600; x < 1000; x += 25) ctx.fillRect(x, 800, 2, 300)
-    for (let y = 800; y < 1100; y += 25) ctx.fillRect(600, y, 400, 2)
-    ctx.fillStyle = '#9a9ea6'
-    ctx.fillRect(720, 300, 160, 44)
-    // Tambang batu (barat laut)
-    ctx.fillStyle = '#77716b'
-    ctx.fillRect(60, 60, 520, 210)
-    for (let i = 0; i < 260; i += 1) {
-      ctx.fillStyle = rnd() > 0.5 ? '#86807a' : '#5f5a55'
-      ctx.fillRect(60 + rnd() * 512, 60 + rnd() * 202, 8, 8)
-    }
+    kerikil(600, 800, 400, 300) // plaza desa
+    kerikil(720, 300, 160, 44) // pelataran kastil
 
+    // Tambang batu (barat laut)
+    kotak('#77716b', 60, 60, 520, 210)
+    for (let i = 0; i < 260; i += 1) kotak(rnd() > 0.5 ? '#86807a' : '#5f5a55', 60 + rnd() * 512, 60 + rnd() * 202, 8, 8)
   } else {
     jalur(260, 400, 260, 510, 56)
     jalur(260, 510, 640, 510, 56)
     jalur(640, 510, 640, 900, 56)
-    ctx.fillStyle = '#6ca95b'
-    ctx.fillRect(516, 196, 280, 216)
+    kotak('#6ca95b', 516, 196, 280, 216)
+    for (let i = 0; i < 300; i += 1) kotak(rnd() > 0.5 ? '#78b567' : '#5f9a4f', 518 + rnd() * 276, 198 + rnd() * 212, 3, 2)
     ctx.strokeStyle = '#7a4a1e'
     ctx.lineWidth = 6
     ctx.strokeRect(516, 196, 280, 216)
+    for (let x = 516; x <= 796; x += 14) {
+      kotak('#9a6a3a', x - 2, 190, 4, 12)
+      kotak('#9a6a3a', x - 2, 406, 4, 12)
+    }
+    for (let y = 196; y <= 412; y += 14) {
+      kotak('#9a6a3a', 510, y - 2, 12, 4)
+      kotak('#9a6a3a', 790, y - 2, 12, 4)
+    }
   }
 
-    for (const a of PETA[peta].air ?? []) {
+  // Danau: pasir, air dangkal, air dalam, dan kilau
+  for (const a of PETA[peta].air ?? []) {
     const elips = (rx, ry, warna) => {
       ctx.fillStyle = warna
       ctx.beginPath()
       ctx.ellipse(a.cx, a.cy, rx, ry, 0, 0, Math.PI * 2)
       ctx.fill()
     }
-    elips(a.rx + 40, a.ry + 26, '#d8c690') // pasir tepi
-    elips(a.rx + 22, a.ry + 12, '#6fc3e6') // air dangkal
-    elips(a.rx, a.ry, '#3f93c9') // air dalam
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)'
-    ctx.lineWidth = 2
-    for (let i = 0; i < 7; i += 1) {
-      ctx.beginPath()
-      ctx.ellipse(
-        a.cx - a.rx * 0.6 + rnd() * a.rx * 1.2,
-        a.cy - a.ry * 0.5 + rnd() * a.ry,
-        12, 4, 0, 0, Math.PI,
-      )
-      ctx.stroke()
+    elips(a.rx + 40, a.ry + 26, '#d8c690')
+    elips(a.rx + 22, a.ry + 12, '#6fc3e6')
+    elips(a.rx, a.ry, '#4aa3d9')
+    for (let i = 0; i < 26; i += 1) {
+      const t = rnd() * Math.PI * 2
+      const r = Math.sqrt(rnd())
+      kotak('rgba(255,255,255,0.45)', a.cx + Math.cos(t) * a.rx * r * 0.9, a.cy + Math.sin(t) * a.ry * r * 0.9, 6, 1)
     }
   }
   return kanvas

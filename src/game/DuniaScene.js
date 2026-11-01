@@ -1,40 +1,15 @@
 import Phaser from 'phaser'
 import {
   JENIS_TANAMAN,
-  WARNA_BAJU,
-  gambarBatu,
-  gambarBunga,
-  gambarGerbang,
-  gambarGoblin,
-  gambarGua,
-  gambarJerami,
-  gambarKastil,
-  gambarKerangka,
-  gambarNaga,
-  gambarNisan,
-  gambarObor,
-  gambarOrc,
-  gambarPandaiBesi,
-  gambarPapan,
-  gambarPemain,
-  gambarPetak,
-  gambarPohon,
-  gambarPondok,
-  gambarRumah,
-  gambarSemak,
-  gambarSerigala,
-  gambarSumur,
-  gambarTanaman,
-  gambarBijih,
-  gambarTumbuhan,
-  gambarKelas,
-  gambarKelelawar,
-  gambarLabaLaba,
-  gambarSlime,
-  gambarTroll,
-  gambarNPC,
-  rupaDariKustom,
+  gambarBatu, gambarBunga, gambarGerbang, gambarGoblin, gambarGua, gambarJerami, gambarKastil,
+  gambarKelelawar, gambarKerangka, gambarLabaLaba, gambarNaga, gambarNisan, gambarObor, gambarOrc,
+  gambarPapan, gambarPetak, gambarSerigala, gambarSlime, gambarSumur, gambarTanaman, gambarTroll,
+  rupaDariKustom, gambarBijih, gambarTumbuhan,
 } from './gambar'
+import {
+  BANGUNAN, gambarAnjing, gambarBangunan, gambarCahaya, gambarKelas, gambarKucing, gambarNPC2,
+  gambarPandaiBesi2, gambarPohon2, gambarSemak2, lampuBangunan, perhalus, suasana,
+} from './seni'
 
 import {
   DOMAIN_BOS,
@@ -55,6 +30,8 @@ const LAJU_DANGKAL = 0.55
 const JARAK_AKSI = 56
 const JARAK_SERANG = 54
 const DEPTH_UI = 100000
+const PAKAI_MULTIPLY = true // jika warna malam tampak aneh, ubah ke false (memakai lapisan gelap biasa)
+const ZONA_JAM = 8 // WITA = UTC+8
 const WARNA_BUNGA = ['#e85d9a', '#f2c94c', '#7aa7f0']
 const GAYA_LABEL = {
   fontFamily: 'monospace',
@@ -122,6 +99,13 @@ export default class DuniaScene extends Phaser.Scene {
     this.aman = false
     this.pesanAmanBerikut = 0
     this.kustomPemain = new Map()
+    this.bangunanObj = []
+    this.lampu = []
+    this.hewan = []
+    this.faktorMalam = 0
+    this.menyalaSaatIni = null
+    this.malamBerikut = 0
+    this.lampuSaya = null
   }
 
   create() {
@@ -136,6 +120,7 @@ export default class DuniaScene extends Phaser.Scene {
     const kunciTanah = `tanah_${this.peta}`
     if (!this.textures.exists(kunciTanah)) this.textures.addCanvas(kunciTanah, gambarTanah(this.peta))
     this.add.image(0, 0, kunciTanah).setOrigin(0, 0).setDepth(-1000)
+    this.siapkanMalam()
 
     if (def.air) def.air.forEach((a) => this.tambahAir(a))
     if (def.kastil) this.tambahKastil(def.kastil)
@@ -240,17 +225,20 @@ export default class DuniaScene extends Phaser.Scene {
     this.terapkanDunia()
     this.game.events.emit('pemain-sekitar', [])
     this.game.events.emit('peta', this.peta)
+    this.lampuSaya = this.tambahLampu(this.pemain.x, this.pemain.y - 6, 70, 0.5, false)
+    this.perbaruiMalam()
   }
 
   buatTekstur() {
-    const tambah = (kunci, kanvas) => {
-      if (!this.textures.exists(kunci)) this.textures.addCanvas(kunci, kanvas)
+    const tambah = (kunci, kanvas, halus = true) => {
+      if (!this.textures.exists(kunci)) this.textures.addCanvas(kunci, halus ? perhalus(kanvas) : kanvas)
     }
-    const baju = this.registry.get('warna')?.baju ?? WARNA_BAJU[0]
+    const rupa = rupaDariKustom(this.registry.get('kustom'), this.registry.get('idSaya') ?? '')
+    const kelasAwal = this.registry.get('kelas')?.id ?? 'ksatria'
     for (const arah of ['bawah', 'atas', 'samping']) {
       for (const n of [0, 1, 2]) {
-        tambah(`pemain_${arah}_${n}`, gambarPemain(arah, n, baju))
-        tambah(`pemain_${arah}_serang${n}`, gambarPemain(arah, 0, baju, n))
+        tambah(`pemain_${arah}_${n}`, gambarKelas(kelasAwal, arah, n, rupa.baju, null, rupa), false)
+        tambah(`pemain_${arah}_serang${n}`, gambarKelas(kelasAwal, arah, 0, rupa.baju, n, rupa), false)
       }
     }
     const pembuatMusuh = {
@@ -267,28 +255,35 @@ export default class DuniaScene extends Phaser.Scene {
     for (const [id, buat] of Object.entries(pembuatMusuh)) {
       for (const f of [0, 1]) tambah(`musuh_${id}_${f}`, buat(f))
     }
-    tambah('pohon', gambarPohon())
-    tambah('semak', gambarSemak())
+    tambah('pohon', gambarPohon2(), false)
+    tambah('semak', gambarSemak2(), false)
     tambah('batu', gambarBatu())
     tambah('nisan', gambarNisan())
     tambah('jerami', gambarJerami())
     tambah('obor', gambarObor())
     tambah('sumur', gambarSumur())
-    tambah('pondok_0', gambarPondok(0))
-    tambah('pondok_1', gambarPondok(1))
-    tambah('pandai', gambarPandaiBesi())
     tambah('kastil', gambarKastil())
     tambah('gua', gambarGua())
     tambah('papan', gambarPapan())
     tambah('gerbang', gambarGerbang())
-    for (const n of NPC_DUNIA) tambah(`npc_${n.id}`, gambarNPC(n.id))
+    for (const n of NPC_DUNIA) tambah(`npc_${n.id}`, gambarNPC2(n.id), false)
     WARNA_BUNGA.forEach((w, i) => tambah(`bunga_${i}`, gambarBunga(w)))
     tambah('petak_buka', gambarPetak(false))
     tambah('petak_kunci', gambarPetak(true))
     for (const jenis of JENIS_TANAMAN) {
       for (const tahap of [0, 1, 2]) tambah(`tanaman_${jenis}_${tahap}`, gambarTanaman(jenis, tahap))
     }
-    for (let l = 1; l <= 5; l += 1) tambah(`rumah_${l}`, gambarRumah(l))
+        // Bangunan: versi siang dan versi malam (jendela menyala)
+    for (const [kunci, rancangan] of Object.entries(BANGUNAN)) {
+      tambah(kunci, gambarBangunan(rancangan, false), false)
+      tambah(`${kunci}_m`, gambarBangunan(rancangan, true), false)
+    }
+    tambah('pandai', gambarPandaiBesi2(false), false)
+    tambah('pandai_m', gambarPandaiBesi2(true), false)
+    for (const f of [0, 1]) {
+      tambah(`anjing_${f}`, gambarAnjing(f), false)
+      tambah(`kucing_${f}`, gambarKucing(f), false)
+    }
       for (const [id, d] of Object.entries(JENIS_FORAGE)) {
         for (const k of [0, 1]) {
           tambah(
@@ -380,15 +375,16 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
   tambahPondok(p) {
-    this.add.image(p.x, p.y, `pondok_${p.v}`).setOrigin(0.5, 1).setDepth(p.y)
+    const kunci = `pondok_${p.v}`
+    const s = this.add.image(p.x, p.y, kunci).setOrigin(0.5, 1).setDepth(p.y)
     this.tambahRintangan(p.x, p.y - 14, 56, 28)
+    this.daftarBangunan(s, () => kunci, kunci, p.x, p.y)
   }
 
   tambahObor(p) {
     this.add.image(p.x, p.y, 'obor').setOrigin(0.5, 1).setDepth(p.y)
     this.tambahRintangan(p.x, p.y - 3, 8, 6)
-    const cahaya = this.add.circle(p.x, p.y - 28, 26, 0xffa040, 0.18).setDepth(p.y + 1)
-    this.tweens.add({ targets: cahaya, alpha: 0.08, yoyo: true, repeat: -1, duration: 500 })
+    this.tambahLampu(p.x, p.y - 28, 42, 0.9, true)
   }
 
   tambahGerbang(g) {
@@ -399,10 +395,11 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
   tambahToko(t) {
-    this.add.image(t.x, t.y, 'pandai').setOrigin(0.5, 1).setDepth(t.y)
+    const s = this.add.image(t.x, t.y, 'pandai').setOrigin(0.5, 1).setDepth(t.y)
     this.tambahRintangan(t.x, t.y - 18, 76, 36)
     this.labelStatis(t.x, t.y - 84, 'Pandai Besi')
     this.interaktif.push({ jenis: 'toko', x: t.x, y: t.y + 24, label: 'Perlengkapan & toko', radius: 56 })
+    this.daftarBangunan(s, () => 'pandai', 'pandai', t.x, t.y)
   }
 
   tambahPapan(p) {
@@ -416,6 +413,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.tambahRintangan(pos.x, pos.y - 24, 84, 48)
     this.labelStatis(pos.x, pos.y - 96, 'Rumahku')
     this.interaktif.push({ jenis: 'rumah', x: pos.x, y: pos.y + 22, label: 'Rumah (upgrade)', radius: 56 })
+    this.daftarBangunan(this.rumahSprite, () => `rumah_${this.status?.rumah.level ?? 1}`, 'rumah_1', pos.x, pos.y)
   }
 
   tambahKebun() {
@@ -438,6 +436,7 @@ export default class DuniaScene extends Phaser.Scene {
     const khusus = [...def.larangan]
     if (this.peta === 'server') {
       if (this.peta === 'server') this.tambahNpc()
+      if (this.peta === 'server') this.tambahHewan()
       for (const t of TITIK_FORAGE) {
         umum.push([t.x - 24, t.y - 24, 48, 48])
         khusus.push([t.x - 24, t.y - 24, 48, 48])
@@ -641,13 +640,146 @@ export default class DuniaScene extends Phaser.Scene {
     })
   }
 
+
+    // ---------- Siang dan malam ----------
+  // Jam dunia (WITA). Admin bisa memaksa lewat registry 'waktuPaksa' (hanya mengubah tampilan sendiri).
+  jamDunia() {
+    const paksa = this.registry.get('waktuPaksa')
+    if (paksa === 'siang') return 12
+    if (paksa === 'senja') return 18
+    if (paksa === 'malam') return 0
+    if (paksa === 'subuh') return 5.5
+    const waktu = new Date(Date.now() + (this.registry.get('selisihWaktu') ?? 0) + ZONA_JAM * 3600000)
+    return waktu.getUTCHours() + waktu.getUTCMinutes() / 60 + waktu.getUTCSeconds() / 3600
+  }
+
+  siapkanMalam() {
+    if (!this.textures.exists('cahaya')) this.textures.addCanvas('cahaya', gambarCahaya(128))
+    this.lapisMalam = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0xffffff)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH_UI - 500)
+      .setVisible(false)
+    if (PAKAI_MULTIPLY) this.lapisMalam.setBlendMode(Phaser.BlendModes.MULTIPLY)
+  }
+
+  tambahLampu(x, y, jari, kuat = 1, kedip = false) {
+    const s = this.add
+      .image(x, y, 'cahaya')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH_UI - 400)
+      .setDisplaySize(jari * 2, jari * 2)
+      .setVisible(false)
+    const lampu = { s, kuat, kedip, fase: Math.random() * 6 }
+    this.lampu.push(lampu)
+    return lampu
+  }
+
+  hapusLampu(lampu) {
+    this.lampu = this.lampu.filter((l) => l !== lampu)
+    lampu.s.destroy()
+  }
+
+  // Bangunan didaftarkan agar tekstur siang/malam bisa ditukar dan lampu jendelanya terpasang
+  daftarBangunan(sprite, kunciFn, kunciLampu, x, y) {
+    this.bangunanObj.push({ sprite, kunci: kunciFn })
+    for (const l of lampuBangunan(kunciLampu)) this.tambahLampu(x + l.x, y + l.y, l.r, l.kuat, l.kedip)
+  }
+
+  gantiBangunan(menyala) {
+    for (const b of this.bangunanObj) b.sprite.setTexture(b.kunci() + (menyala ? '_m' : ''))
+  }
+
+  perbaruiMalam() {
+    const s = suasana(this.jamDunia())
+    this.faktorMalam = s.malam
+    if (PAKAI_MULTIPLY) {
+      this.lapisMalam.setFillStyle(s.hex, 1).setVisible(s.hex !== 0xffffff)
+    } else {
+      this.lapisMalam.setFillStyle(0x0a0f2a, s.malam * 0.55).setVisible(s.malam > 0.01)
+    }
+    const menyala = s.malam > 0.45
+    if (menyala !== this.menyalaSaatIni) {
+      this.menyalaSaatIni = menyala
+      this.gantiBangunan(menyala)
+    }
+  }
+
+  perbaruiLampu() {
+    const f = this.faktorMalam
+    for (const l of this.lampu) {
+      if (f < 0.03) {
+        l.s.setVisible(false)
+        continue
+      }
+      const kedip = l.kedip ? 0.85 + 0.15 * Math.sin(this.time.now / 120 + l.fase) : 1
+      l.s.setVisible(true).setAlpha(Math.min(1, f * l.kuat * kedip))
+    }
+  }
+
+  // ---------- Hewan di desa (hiasan) ----------
+  tambahHewan() {
+    const buat = (kunci, x, y, kecepatan) => {
+      const s = this.add.sprite(x, y, `${kunci}_0`).setOrigin(0.5, 1).setDepth(y)
+      this.hewan.push({ s, kunci, x, y, tx: x, ty: y, kecepatan, tunggu: Math.random() * 2, waktuFrame: 0, frame: 0 })
+    }
+    buat('anjing', 850, 960, 34)
+    buat('kucing', 700, 1000, 26)
+  }
+
+  perbaruiHewan(dt) {
+    const [zx, zy, zl, zt] = ZONA_AMAN[0]
+    for (const h of this.hewan) {
+      if (h.tunggu > 0) {
+        h.tunggu -= dt
+        h.s.setTexture(`${h.kunci}_0`)
+      } else {
+        const dx = h.tx - h.x
+        const dy = h.ty - h.y
+        const jarak = Math.hypot(dx, dy)
+        if (jarak < 2) {
+          h.tunggu = 1.5 + Math.random() * 3
+          for (let i = 0; i < 8; i += 1) {
+            const nx = Phaser.Math.Clamp(h.x + (Math.random() - 0.5) * 180, zx + 40, zx + zl - 40)
+            const ny = Phaser.Math.Clamp(h.y + (Math.random() - 0.5) * 120, zy + 40, zy + zt - 40)
+            if (!this.menabrak(nx, ny - 12)) {
+              h.tx = nx
+              h.ty = ny
+              break
+            }
+          }
+        } else {
+          const langkah = h.kecepatan * dt
+          const nx = h.x + (dx / jarak) * langkah
+          const ny = h.y + (dy / jarak) * langkah
+          if (this.menabrak(nx, ny - 12)) {
+            h.tx = h.x
+            h.ty = h.y
+          } else {
+            h.x = nx
+            h.y = ny
+            h.s.setFlipX(dx < 0)
+            h.waktuFrame += dt
+            if (h.waktuFrame > 0.18) {
+              h.waktuFrame = 0
+              h.frame = 1 - h.frame
+            }
+            h.s.setTexture(`${h.kunci}_${h.frame}`)
+          }
+        }
+      }
+      h.s.setPosition(h.x, h.y).setDepth(h.y)
+    }
+  }
+
   // ---------- Status dari React ----------
   terapkanStatus() {
     const st = this.registry.get('status')
     if (!st) return
     this.status = st
     if (this.peta !== 'pribadi') return
-    this.rumahSprite?.setTexture(`rumah_${st.rumah.level}`)
+    this.gantiBangunan(Boolean(this.menyalaSaatIni))
     this.perbaruiPetak()
   }
 
@@ -1047,6 +1179,7 @@ export default class DuniaScene extends Phaser.Scene {
       x: undefined, y: undefined, tx: 0, ty: 0,
       a: 'bawah', f: false, g: false, serangSampai: 0, terakhir: 0,
     }
+    o.lampu = this.tambahLampu(-1000, -1000, 56, 0.45, false)
     this.pemainLain.set(id, o)
     return o
   }
@@ -1085,6 +1218,7 @@ export default class DuniaScene extends Phaser.Scene {
     o.sprite.destroy()
     o.cincin?.destroy()
     o.label.destroy()
+    if (o.lampu) this.hapusLampu(o.lampu)
     this.pemainLain.delete(id)
     const g = this.gelembung.get(id)
     if (g) {
@@ -1130,6 +1264,7 @@ export default class DuniaScene extends Phaser.Scene {
         .setPosition(o.x, o.y)
         .setDepth(o.y + 16)
       o.label.setPosition(o.x, o.y - 20)
+      o.lampu?.s.setPosition(o.x, o.y - 4)
 
       const dekat = Phaser.Math.Distance.Between(this.pemain.x, this.pemain.y, o.x, o.y) <= RADIUS_HADIAH
       if (dekat && !o.cincin) o.cincin = this.add.ellipse(0, 0, 40, 16).setStrokeStyle(2, 0xffe38a, 0.9)
@@ -1313,6 +1448,14 @@ export default class DuniaScene extends Phaser.Scene {
     this.kirimPosisiSaya()
     this.perbaruiPemainLain(dt)
     this.perbaruiGelembung()
+
+    this.lampuSaya?.s.setPosition(this.pemain.x, this.pemain.y - 6)
+    if (this.time.now >= this.malamBerikut) {
+      this.malamBerikut = this.time.now + 250
+      this.perbaruiMalam()
+    }
+    this.perbaruiLampu()
+    this.perbaruiHewan(dt)
 
     let terdekat = null
     let jarakMin = Infinity
