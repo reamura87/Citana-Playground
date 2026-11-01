@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { Analytics } from "@vercel/analytics/next"
 
 export default function AdminPage() {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ export default function AdminPage() {
       <p>
         <button type="button" className="tombol" onClick={keluar}>Keluar</button>
       </p>
+      <Analytics />
     </>
   )
 }
