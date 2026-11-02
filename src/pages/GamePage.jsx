@@ -7,7 +7,7 @@ import {
   adminAturKarakter, adminPakai, ambilDunia, ambilKatalog, ambilMisi, beli, buatKarakter, diserang,
   forageBatal, forageMulai, forageSelesai, jual, kirimHadiah, klaimMisi, masukGame, pakai, panen,
   serang, tambahPoin, tanam, upgradeRumah,
-} from '../lib/gameApi'
+} from '../lib/gameAPI'
 import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
 import { useModeHP } from '../lib/useModeHP'
 import { useAuth, useSesi } from '../lib/useSesi'
