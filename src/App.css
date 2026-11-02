@@ -1256,3 +1256,68 @@ main.lebar .game-area { max-width: none; }
   }
   .gb-rangka .layout-game > .layout-chat.terbuka { transform: none; }
 }
+
+/* ===== Kontrol HP: besar dan mudah ditekan ===== */
+.gb-rangka {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    'layar layar'
+    'obrol mulai'
+    'kiri kanan';
+}
+.gb-rangka .gb-obrol { grid-area: obrol; }
+.gb-rangka .gb-mulai { grid-area: mulai; }
+.gb-pil {
+  min-height: 56px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  background: var(--field);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  touch-action: none;
+  cursor: pointer;
+}
+.gb-pil:active { background: var(--line); }
+.gb-rangka .gb-dpad {
+  grid-area: kiri;
+  justify-self: start;
+  align-self: center;
+  width: min(190px, 46vw, 30dvh);
+  height: auto;
+  aspect-ratio: 1;
+}
+.gb-panah { font-size: 1.6rem; }
+.gb-rangka .gb-tombol {
+  grid-area: kanan;
+  justify-self: end;
+  align-self: center;
+  width: min(200px, 46vw);
+  height: min(170px, 40vw, 30dvh);
+}
+.gb-aksi { width: 96px; height: 96px; }
+.gb-aksi strong { font-size: 1.6rem; }
+.gb-aksi small { font-size: 0.7rem; }
+.gb-a { right: 0; top: 0; }
+.gb-b { left: 0; bottom: 0; }
+.game-petunjuk { margin: 8px 0 0; }
+
+@media (orientation: landscape) {
+  .gb-rangka {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'obrol layar mulai'
+      'kiri layar kanan';
+  }
+  .gb-rangka .game-bingkai { width: min(calc((100dvh - 24px) * 1.5), calc(100vw - 340px)); }
+  .gb-rangka .gb-obrol,
+  .gb-rangka .gb-mulai { align-self: start; justify-self: stretch; min-height: 52px; }
+  .gb-rangka .gb-dpad { width: min(150px, 38dvh); justify-self: center; align-self: end; }
+  .gb-rangka .gb-tombol { width: 160px; height: 136px; justify-self: center; align-self: end; }
+  .gb-aksi { width: 76px; height: 76px; }
+}

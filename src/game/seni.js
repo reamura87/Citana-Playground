@@ -852,3 +852,183 @@ export function suasana(jam) {
   const malam = Math.min(1, Math.max(0, (1 - cerah) / (1 - CERAH_MALAM)))
   return { hex: (warna[0] << 16) | (warna[1] << 8) | warna[2], malam }
 }
+
+// ---------- Wajah untuk kotak dialog (96x96) ----------
+export const WAJAH = {
+  kapten: {
+    kulit: '#d9a577', rambut: '#5a4636', gaya: 'pendek', mata: '#5b6a7a', baju: '#7a2222',
+    topi: 'helm', zirah: true, janggut: '#5a4636', janggutTipis: true, ekspresi: 'tegas',
+  },
+  herbalis: {
+    kulit: '#f0c8a0', rambut: '#7a4a1e', gaya: 'kepang', mata: '#4f8a5a', baju: '#3f8f4e',
+    tudung: '#2f6b3a', ekspresi: 'senyum',
+  },
+  guru: {
+    kulit: '#ecc9a4', rambut: '#e8e8e8', gaya: 'panjang', mata: '#6a8ac0', baju: '#6a3fa0',
+    topi: 'kerucut', janggut: '#e8e8e8', janggutPanjang: true, ekspresi: 'senyum',
+  },
+  pandai: {
+    kulit: '#c68e5d', rambut: '#2a1f1a', gaya: 'botak', mata: '#3a2a1a', baju: '#6b4423',
+    topi: 'bandana', janggut: '#2a1f1a', jelaga: true, ekspresi: 'senyum',
+  },
+}
+
+export function gambarWajah(o) {
+  const c = baru(96, 96)
+  const { p, garis, elips } = c
+  const kulit = o.kulit ?? '#e0b48a'
+  const baju = o.baju ?? '#2e5fa3'
+  const rambut = o.rambut ?? '#3b2a1a'
+  const dalam = (x, y, cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1
+  // Elips berbayang: tepi kiri-atas terang, tepi kanan-bawah gelap
+  const bulat = (warna, cx, cy, rx, ry, yMin = -1000) => {
+    for (let y = Math.max(yMin, Math.floor(cy - ry)); y <= Math.ceil(cy + ry); y += 1) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x += 1) {
+        if (!dalam(x, y, cx, cy, rx, ry)) continue
+        let w = warna
+        if (!dalam(x, y, cx - 3, cy - 3, rx, ry)) w = gelap(warna, 0.2)
+        else if (!dalam(x, y, cx + 3, cy + 3, rx, ry)) w = terang(warna, 0.14)
+        p(w, x, y)
+      }
+    }
+  }
+
+  // 1) rambut belakang atau bagian belakang tudung
+  if (o.gaya === 'panjang' || o.gaya === 'kepang') bulat(rambut, 48, 56, 31, 38)
+  if (o.tudung) bulat(o.tudung, 48, 46, 34, 40)
+
+  // 2) baju dan bahu
+  for (let y = 74; y < 96; y += 1) {
+    const hw = Math.min(46, 22 + (y - 74) * 1.7)
+    p(baju, 48 - hw, y, hw * 2, 1)
+    p(gelap(baju, 0.22), 48, y, hw, 1)
+  }
+  if (o.zirah) {
+    bulat('#aab3bf', 20, 86, 12, 8)
+    bulat('#aab3bf', 76, 86, 12, 8)
+    p('#c0392b', 44, 78, 8, 18)
+  }
+
+  // 3) leher
+  p(gelap(kulit, 0.1), 41, 62, 14, 18)
+  p(gelap(kulit, 0.3), 41, 62, 14, 3)
+  for (let y = 74; y < 84; y += 1) {
+    const w = (84 - y) * 0.9
+    p(gelap(kulit, 0.08), 48 - w, y, w * 2, 1)
+  }
+
+  // 4) telinga dan kepala
+  bulat(kulit, 24, 50, 4, 6)
+  bulat(kulit, 72, 50, 4, 6)
+  bulat(kulit, 48, 46, 24, 28)
+  if (o.gaya === 'botak') elips('rgba(255,255,255,0.18)', 40, 28, 8, 5)
+
+  // 5) mata, alis, hidung, pipi
+  const mata = (cx, cy, kiri) => {
+    elips('#ffffff', cx, cy, 6, 5)
+    elips(o.mata ?? '#4f7a9a', cx, cy + 1, 4, 5)
+    elips('#1a1410', cx, cy + 1, 2, 3)
+    p('#ffffff', cx - 3, cy - 3, 2, 2)
+    p('#ffffff', cx + 1, cy + 2)
+    p('#2a1f1a', cx - 7, cy - 6, 14, 2)
+    p('#2a1f1a', kiri ? cx - 8 : cx + 6, cy - 5, 2, 3)
+  }
+  mata(36, 50, true)
+  mata(60, 50, false)
+  const alis = gelap(rambut, 0.1)
+  if (o.ekspresi === 'tegas') {
+    garis(alis, 28, 39, 42, 43, 2)
+    garis(alis, 54, 43, 68, 39, 2)
+  } else {
+    garis(alis, 28, 42, 42, 40, 2)
+    garis(alis, 54, 40, 68, 42, 2)
+  }
+  p(gelap(kulit, 0.22), 47, 57, 2, 4)
+  p(gelap(kulit, 0.32), 45, 61, 6, 1)
+  elips('rgba(255,120,120,0.22)', 32, 59, 6, 4)
+  elips('rgba(255,120,120,0.22)', 64, 59, 6, 4)
+  if (o.jelaga) {
+    elips('rgba(30,25,20,0.28)', 30, 56, 5, 3)
+    elips('rgba(30,25,20,0.28)', 66, 62, 4, 3)
+  }
+
+  // 6) janggut dan mulut
+  const janggutPenuh = o.janggut && !o.janggutTipis
+  if (janggutPenuh) bulat(o.janggut, 48, o.janggutPanjang ? 70 : 64, 22, o.janggutPanjang ? 26 : 19, 60)
+  if (o.janggut && o.janggutTipis) {
+    for (let i = 0; i < 90; i += 1) {
+      const x = 28 + ((i * 37) % 40)
+      const y = 62 + ((i * 17) % 14)
+      if (dalam(x, y, 48, 56, 22, 24)) p('rgba(60,45,30,0.55)', x, y)
+    }
+  }
+  const warnaMulut = janggutPenuh ? '#c8786a' : '#a8574a'
+  p(warnaMulut, 42, 66, 12, 2)
+  if (o.ekspresi === 'senyum') {
+    p(warnaMulut, 41, 65)
+    p(warnaMulut, 54, 65)
+  }
+
+  // 7) rambut depan, jambul, kepang
+  const bersih = !o.topi && !o.tudung
+  if (bersih && o.gaya && o.gaya !== 'botak') {
+    if (o.gaya === 'jabrik') {
+      for (const [x, y] of [[30, 14], [40, 8], [50, 6], [60, 9], [68, 15]]) bulat(rambut, x, y, 6, 8)
+    }
+    for (let y = 6; y < 62; y += 1) {
+      for (let x = 14; x < 82; x += 1) {
+        if (!dalam(x, y, 48, 32, 27, 23) || dalam(x, y, 48, 58, 21, 27)) continue
+        let w = rambut
+        if (!dalam(x, y, 45, 29, 27, 23)) w = gelap(rambut, 0.22)
+        else if ((x * 3 + y * 5) % 11 === 0) w = terang(rambut, 0.12)
+        p(w, x, y)
+      }
+    }
+  }
+  if (o.gaya === 'kepang') {
+    for (let i = 0; i < 5; i += 1) bulat(rambut, 22 + (i % 2) * 2, 70 + i * 5, 5, 4)
+  }
+
+  // 8) penutup kepala
+  if (o.topi === 'helm') {
+    const baja = '#aab3bf'
+    bulat('#c0392b', 48, 8, 6, 12)
+    bulat(baja, 48, 22, 28, 17)
+    p(gelap(baja, 0.18), 21, 33, 54, 5)
+    for (let y = 38; y < 66; y += 1) {
+      p(gelap(baja, 0.12), 21, y, 5, 1)
+      p(gelap(baja, 0.12), 70, y, 5, 1)
+    }
+    p(terang(baja, 0.25), 46, 34, 4, 24)
+  }
+  if (o.topi === 'kerucut') {
+    const topi = gelap(baju, 0.25)
+    for (let y = 2; y <= 30; y += 1) {
+      const t = (y - 2) / 28
+      const hw = 4 + 22 * t
+      const geser = Math.sin((1 - t) * 1.3) * 7
+      p(topi, Math.round(48 + geser - hw), y, Math.round(hw * 2), 1)
+      p(gelap(topi, 0.2), Math.round(48 + geser), y, Math.round(hw), 1)
+    }
+    bulat(gelap(baju, 0.3), 48, 30, 38, 7)
+    p('#f2c94c', 26, 27, 44, 3)
+    p('#ffe066', 44, 14, 4, 4)
+    p('#ffe066', 42, 16, 8, 1)
+    p('#ffe066', 46, 12, 1, 8)
+  }
+  if (o.topi === 'bandana') {
+    p('#c0392b', 22, 24, 52, 7)
+    p(gelap('#c0392b', 0.2), 22, 29, 52, 2)
+    p('#c0392b', 70, 26, 8, 4)
+    p('#c0392b', 74, 30, 5, 8)
+  }
+  if (o.tudung) {
+    for (let y = 4; y < 62; y += 1) {
+      for (let x = 12; x < 84; x += 1) {
+        if (!dalam(x, y, 48, 30, 33, 26) || dalam(x, y, 48, 58, 24, 29)) continue
+        p(dalam(x, y, 45, 27, 33, 26) ? o.tudung : gelap(o.tudung, 0.2), x, y)
+      }
+    }
+  }
+  return perhalus(c.kanvas)
+}

@@ -168,6 +168,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.tekanE = false
     this.tekanSpasi = false
     const turun = (e) => {
+      if (this.registry.get('uiBuka')) return
       if (this.fokusDiInput() || e.ctrlKey || e.metaKey || e.altKey) return
       this.tombolTekan.add(e.code)
       if (e.repeat) return
@@ -191,6 +192,7 @@ export default class DuniaScene extends Phaser.Scene {
     // jadi fokus kolom chat dilepas di sini.
     this.input.off('pointerdown')
     this.input.on('pointerdown', (pointer) => {
+      if (performance.now() - (this.registry.get('klikUI') ?? 0) < 80) return
       if (this.fokusDiInput()) document.activeElement.blur()
       this.serang({ x: pointer.worldX, y: pointer.worldY })
     })
@@ -225,6 +227,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.terapkanDunia()
     this.game.events.emit('pemain-sekitar', [])
     this.game.events.emit('peta', this.peta)
+    if (!this.scene.isActive('ui')) this.scene.launch('ui')
     this.lampuSaya = this.tambahLampu(this.pemain.x, this.pemain.y - 6, 70, 0.5, false)
     this.perbaruiMalam()
   }
@@ -1060,7 +1063,7 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
   serang(titik) {
-    if (this.menyerang || this.registry.get('terkunci') || this.registry.get('mati')) return
+    if (this.menyerang || this.registry.get('terkunci') || this.registry.get('uiBuka') || this.registry.get('mati')) return
     if (this.time.now < this.bolehSerangLagi) return
     if (this.registry.get('forage')) this.game.events.emit('forage-batal')
     if (this.pemainAman()) {
@@ -1387,7 +1390,7 @@ export default class DuniaScene extends Phaser.Scene {
     const mati = Boolean(this.registry.get('mati'))
     if (this.perbaruiMati(mati)) return
 
-    const terkunci = Boolean(this.registry.get('terkunci')) || mati
+    const terkunci = Boolean(this.registry.get('terkunci') || this.registry.get('uiBuka')) || mati
     const boleh = !terkunci && !this.fokusDiInput()
     const tombol = this.tombolTekan
 

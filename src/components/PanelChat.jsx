@@ -84,6 +84,7 @@ export default function PanelChat({
 
   useEffect(() => {
     function tekanEnter(e) {
+      if (document.documentElement.dataset.gameUi === '1') return
       if (e.key !== 'Enter') return
       const tag = document.activeElement?.tagName
       if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return

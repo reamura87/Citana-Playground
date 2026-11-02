@@ -1,51 +1,26 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  ambilDunia,
-  ambilKatalog,
-  ambilMisi,
-  klaimMisi,
-  beli,
-  diserang,
-  jual,
-  masukGame,
-  panen,
-  pakai,
-  serang,
-  tambahPoin,
-  tanam,
-  upgradeRumah,
-  kirimHadiah,
-  forageBatal,
-  forageMulai,
-  forageSelesai,
-  adminAturKarakter,
-  adminPakai,
-  buatKarakter,
-} from '../lib/gameAPI'
-import HudGame from '../components/HudGame'
-import PanelChat from '../components/PanelChat'
-import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
-import { useAuth, useSesi } from '../lib/useSesi'
-import PembuatKarakter from '../components/PembuatKarakter'
-import { suara } from '../game/suara'
-import { useSuara } from '../lib/useSuara'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import KontrolGB from '../components/KontrolGB'
+import PanelChat from '../components/PanelChat'
+import { suara } from '../game/suara'
+import {
+  adminAturKarakter, adminPakai, ambilDunia, ambilKatalog, ambilMisi, beli, buatKarakter, diserang,
+  forageBatal, forageMulai, forageSelesai, jual, kirimHadiah, klaimMisi, masukGame, pakai, panen,
+  serang, tambahPoin, tanam, upgradeRumah,
+} from '../lib/gameApi'
+import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
 import { useModeHP } from '../lib/useModeHP'
+import { useAuth, useSesi } from '../lib/useSesi'
 
-const format = (n) => n.toLocaleString('id-ID')
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
 
-function formatDurasi(detik) {
-  if (detik >= 3600) return `${Math.round(detik / 3600)} jam`
-  if (detik >= 60) return `${Math.round(detik / 60)} menit`
-  return `${detik} detik`
-}
-
-function formatSisa(ms) {
-  const total = Math.max(0, Math.ceil(ms / 1000))
-  const dua = (n) => String(n).padStart(2, '0')
-  return `${dua(Math.floor(total / 3600))}:${dua(Math.floor((total % 3600) / 60))}:${dua(total % 60)}`
+function tierAlat(status, katalog, jenis) {
+  let t = 0
+  for (const i of status.inventaris) {
+    const a = katalog.alat?.find((x) => x.item_id === i.item_id && x.jenis === jenis)
+    if (a && i.jumlah > 0 && a.tier > t) t = a.tier
+  }
+  return t
 }
 
 function ringkasKill(h) {
@@ -68,72 +43,58 @@ function teksMp(status, diizinkan, afk) {
   return 'Menyambung ke multiplayer…'
 }
 
-const NAMA_TIER = ['', 'perunggu', 'perak', 'emas', 'berlian', 'obsidian', 'mitril']
-
-function tierAlat(status, katalog, jenis) {
-  let t = 0
-  for (const i of status.inventaris) {
-    const a = katalog.alat?.find((x) => x.item_id === i.item_id && x.jenis === jenis)
-    if (a && i.jumlah > 0 && a.tier > t) t = a.tier
-  }
-  return t
-}
-
-
 export default function GamePage() {
-  const [tahap, setTahap] = useState('memuat') // memuat | siap | gagal
+  const navigate = useNavigate()
+  const sesi = useSesi()
+  const userId = sesi?.user.id ?? null
+  const { profil } = useAuth()
+  const admin = profil?.peran === 'admin'
+  const modeHP = useModeHP()
+  const { tampak, afk } = useAktivitas()
+
+  const [tahap, setTahap] = useState('memuat') // memuat | karakter | siap | gagal
   const [kesalahan, setKesalahan] = useState('')
   const [status, setStatus] = useState(null)
   const [dunia, setDunia] = useState(null)
   const [selisih, setSelisih] = useState(0)
   const [katalog, setKatalog] = useState(null)
-  const [peta, setPeta] = useState('server')
-  const [panel, setPanel] = useState(null) // inventaris | status | toko | rumah | tanam
-  const [indeksPetak, setIndeksPetak] = useState(null)
-  const [sibuk, setSibuk] = useState(false)
-  const [catatan, setCatatan] = useState('')
-  const [target, setTarget] = useState(null)
-  const [sekitar, setSekitar] = useState([])
-  const [forage, setForage] = useState(null)
-  const [misi, setMisi] = useState(null)
   const [awalKarakter, setAwalKarakter] = useState(null)
-  const [galatKarakter, setGalatKarakter] = useState('')
-  const { nyala: suaraNyala, volume: suaraVolume } = useSuara()
-  const emasLalu = useRef(null)
-  const levelLalu = useRef(null)
-  const [waktuPaksa, setWaktuPaksa] = useState('otomatis')
-  const waktuRef = useRef(null)
-  
-  const [aman, setAman] = useState(false)
-  const forageRef = useRef(null)
-  const forageTimer = useRef(null)
-  const batalForageRef = useRef(null)
-  const alatRef = useRef({ beliung: 0, sabit: 0 })
-  const adaRekan = sekitar.length > 0
+  const [peta, setPeta] = useState('server')
+  const [sibuk, setSibuk] = useState(false)
+  const [sekitar, setSekitar] = useState([])
   const [sekarang, setSekarang] = useState(() => Date.now())
+  const [chatBuka, setChatBuka] = useState(false)
+  const [idDibaca, setIdDibaca] = useState(0)
 
   const wadah = useRef(null)
   const gameRef = useRef(null)
   const kontrol = useRef({ kiri: false, kanan: false, atas: false, bawah: false, aksi: false, serang: false })
   const statusRef = useRef(null)
   const duniaRef = useRef(null)
+  const katalogRef = useRef(null)
+  const adminRef = useRef(false)
+  const awalRef = useRef(null)
   const aksiRef = useRef(null)
   const serangRef = useRef(null)
   const diserangRef = useRef(null)
+  const batalForageRef = useRef(null)
+  const forageRef = useRef(null)
+  const forageTimer = useRef(null)
   const segarkanMati = useRef(false)
+  const alatRef = useRef({ beliung: 0, sabit: 0 })
+  const emasLalu = useRef(null)
+  const levelLalu = useRef(null)
+  const apiRef = useRef({})
+  const mpApi = useRef({})
+  // Jembatan stabil ke fungsi terbaru: dipakai jendela di dalam game
+  const [apiStabil] = useState(
+    () => new Proxy({}, { get: (_, nama) => (...args) => apiRef.current[nama]?.(...args) }),
+  )
 
-    const sesi = useSesi()
-  const userId = sesi?.user.id ?? null
-  const { profil } = useAuth()
-  const admin = profil?.peran === 'admin'
-  const { tampak, afk } = useAktivitas()
   const mpDiizinkan = dunia?.mp?.aktif ?? false
   const chatDiizinkan = dunia?.mp?.chat ?? false
-  const {
-    status: statusMp,
-    kirimPosisi,
-    sinkron,
-  } = useMultiplayer({
+  const adaRekan = sekitar.length > 0
+  const { status: statusMp, kirimPosisi, sinkron } = useMultiplayer({
     userId,
     aktif: tahap === 'siap' && peta === 'server' && mpDiizinkan && tampak && !afk,
     maks: dunia?.mp?.maks ?? 12,
@@ -144,24 +105,14 @@ export default function GamePage() {
     gameRef,
     onStatus: terapkan,
   })
-  const mpApi = useRef({})
 
-    const modeHP = useModeHP()
-  const [chatBuka, setChatBuka] = useState(false)
-  const [idDibaca, setIdDibaca] = useState(0)
   const idTerakhir = chat.pesan.length > 0 ? chat.pesan[chat.pesan.length - 1].id : 0
-  const belumBaca = chatBuka
-    ? 0
-    : chat.pesan.filter((m) => m.id > idDibaca && m.penulis_id !== userId).length
+  const belumBaca = chatBuka ? 0 : chat.pesan.filter((m) => m.id > idDibaca && m.penulis_id !== userId).length
+
   function alihChat() {
     setIdDibaca(idTerakhir)
     setChatBuka((b) => !b)
   }
-
-  useEffect(() => {
-    mpApi.current = { kirimPosisi, sinkron }
-  })
-
 
   function terapkan(st) {
     setStatus(st)
@@ -174,7 +125,15 @@ export default function GamePage() {
     setSelisih(Date.parse(d.waktu_server) - Date.now())
   }
 
-  // Muat data awal
+  function info(teks) {
+    if (teks) gameRef.current?.events.emit('toast', teks)
+  }
+
+  function scene() {
+    return gameRef.current?.scene.getScene('dunia')
+  }
+
+  // ---------- Data awal ----------
   useEffect(() => {
     let batal = false
     Promise.all([masukGame(), ambilKatalog()])
@@ -182,7 +141,11 @@ export default function GamePage() {
         if (batal) return
         setKatalog(kat)
         if (st.perlu_karakter) {
-          setAwalKarakter(st)
+          setAwalKarakter(
+            st.baru
+              ? { nama: st.nama, kelas: 'ksatria', kustom: null }
+              : { nama: st.pemain.nama, kelas: st.pemain.kelas.id, kustom: st.pemain.kustom },
+          )
           if (!st.baru) terapkan(st)
           setTahap('karakter')
           return
@@ -202,63 +165,16 @@ export default function GamePage() {
 
   useEffect(() => {
     statusRef.current = status
-  }, [status])
-
-  useEffect(() => {
     duniaRef.current = dunia
-  }, [dunia])
+    katalogRef.current = katalog
+    adminRef.current = admin
+    awalRef.current = awalKarakter
+  })
 
-  // Jam untuk hitung mundur
   useEffect(() => {
     const t = setInterval(() => setSekarang(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
-
-  // Pesan sementara dan panel target hilang sendiri
-  useEffect(() => {
-    if (!catatan) return
-    const t = setTimeout(() => setCatatan(''), 6000)
-    return () => clearTimeout(t)
-  }, [catatan])
-
-    // Mode HP: halaman dikunci satu layar (tidak bisa di-scroll atau ditarik untuk refresh)
-  useEffect(() => {
-    if (!modeHP) return
-    const bodyLama = document.body.style.overflow
-    const htmlLama = document.documentElement.style.overscrollBehavior
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overscrollBehavior = 'none'
-    return () => {
-      document.body.style.overflow = bodyLama
-      document.documentElement.style.overscrollBehavior = htmlLama
-    }
-  }, [modeHP])
-
-  // Notifikasi di mode HP hilang sendiri
-  useEffect(() => {
-    if (!modeHP || !catatan) return
-    const t = setTimeout(() => setCatatan(''), 4500)
-    return () => clearTimeout(t)
-  }, [modeHP, catatan])
-
-  // Ukuran game disesuaikan saat layar diputar atau jendela berubah
-  useEffect(() => {
-    function segarkan() {
-      setTimeout(() => gameRef.current?.scale.refresh(), 150)
-    }
-    window.addEventListener('orientationchange', segarkan)
-    window.addEventListener('resize', segarkan)
-    return () => {
-      window.removeEventListener('orientationchange', segarkan)
-      window.removeEventListener('resize', segarkan)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!target) return
-    const t = setTimeout(() => setTarget(null), 6000)
-    return () => clearTimeout(t)
-  }, [target])
 
   // Cegah halaman bergulir oleh tombol panah dan spasi saat bermain
   useEffect(() => {
@@ -271,7 +187,7 @@ export default function GamePage() {
     return () => window.removeEventListener('keydown', cegah)
   }, [])
 
-    // Ambil keadaan dunia (musuh bersama): tiap 3 detik jika ada pemain lain di ruang, selain itu 8 detik
+  // Keadaan dunia (musuh bersama): tiap 3 detik jika ada pemain lain di dekatmu, selain itu 8 detik
   useEffect(() => {
     if (tahap !== 'siap' || peta !== 'server') return
     let batal = false
@@ -293,29 +209,36 @@ export default function GamePage() {
     }
   }, [tahap, peta, adaRekan])
 
-    // Jalankan Phaser (dimuat malas)
+  // ---------- Phaser ----------
   useEffect(() => {
-    if (tahap !== 'siap' || !wadah.current) return
+    if ((tahap !== 'siap' && tahap !== 'karakter') || !wadah.current) return
     let batal = false
     let game = null
     import('../game/mulaiGame').then(({ buatGame }) => {
       if (batal || !wadah.current) return
-      game = buatGame(wadah.current, { kontrol: kontrol.current, status: statusRef.current, userId })
+      game = buatGame(wadah.current, {
+        mode: tahap === 'karakter' ? 'karakter' : 'dunia',
+        kontrol: kontrol.current,
+        status: statusRef.current,
+        userId,
+        katalog: katalogRef.current,
+        admin: adminRef.current,
+        karakterAwal: awalRef.current,
+        api: apiStabil,
+      })
       gameRef.current = game
       game.registry.set('dunia', duniaRef.current)
       game.registry.set('alat', alatRef.current)
-      game.registry.set('waktuPaksa', waktuRef.current)
+      game.registry.set('waktuPaksa', null)
       game.events.on('interaksi', (o) => aksiRef.current?.(o))
       game.events.on('serang', (id) => serangRef.current?.(id))
       game.events.on('diserang', (id) => diserangRef.current?.(id))
       game.events.on('posisi-saya', (d) => mpApi.current.kirimPosisi?.(d))
       game.events.on('pemain-sekitar', (d) => setSekitar(d))
       game.events.on('forage-batal', () => batalForageRef.current?.())
-      game.events.on('zona-aman', (v) => setAman(v))
       game.events.on('peta', (nama) => {
         batalForageRef.current?.()
         setPeta(nama)
-        // Beri waktu scene selesai dibuat sebelum pemain lain diisi ulang
         if (nama === 'server') setTimeout(() => mpApi.current.sinkron?.(), 80)
       })
     })
@@ -324,58 +247,9 @@ export default function GamePage() {
       game?.destroy(true)
       gameRef.current = null
     }
-  }, [tahap, userId])
+  }, [tahap, userId, apiStabil])
 
-    // Tier alat tertinggi dikirim ke game (untuk petunjuk "butuh beliung")
-  useEffect(() => {
-    if (!status || !katalog) return
-    alatRef.current = {
-      beliung: tierAlat(status, katalog, 'beliung'),
-      sabit: tierAlat(status, katalog, 'sabit'),
-    }
-    gameRef.current?.registry.set('alat', alatRef.current)
-  }, [status, katalog])
-
-  // Hentikan penghitung foraging saat halaman ditutup
-  useEffect(() => () => clearTimeout(forageTimer.current), [])
-
-    // Musik mulai saat layar karakter atau game tampil, berhenti saat halaman ditutup
-  useEffect(() => {
-    if (tahap === 'siap' || tahap === 'karakter') suara.mulaiMusik()
-  }, [tahap])
-  useEffect(() => () => suara.hentikanMusik(), [])
-
-  // Tombol M: nyalakan atau matikan suara
-  useEffect(() => {
-    function tekan(e) {
-      if (e.code !== 'KeyM' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
-      const tag = document.activeElement?.tagName
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
-      suara.setNyala(!suara.cuplikan().nyala)
-    }
-    window.addEventListener('keydown', tekan)
-    return () => window.removeEventListener('keydown', tekan)
-  }, [])
-
-  // Naik level dan perubahan gold berbunyi
-  useEffect(() => {
-    if (!status) return
-    const { gold, level } = status.pemain
-    if (levelLalu.current !== null && level > levelLalu.current) suara.sfx('levelup')
-    else if (emasLalu.current !== null && gold > emasLalu.current) suara.sfx('koin')
-    else if (emasLalu.current !== null && gold < emasLalu.current) suara.sfx('beli')
-    levelLalu.current = level
-    emasLalu.current = gold
-  }, [status])
-
-    // Waktu paksa (khusus tampilan admin sendiri)
-  useEffect(() => {
-    waktuRef.current = waktuPaksa === 'otomatis' ? null : waktuPaksa
-    gameRef.current?.registry.set('waktuPaksa', waktuRef.current)
-  }, [waktuPaksa])
-
-
-  // Kirim status dan keadaan dunia terbaru ke game
+  // Kirim data terbaru ke game
   useEffect(() => {
     const game = gameRef.current
     if (!game || !status) return
@@ -385,7 +259,14 @@ export default function GamePage() {
     game.registry.set('jedaSerang', status.pemain.jeda_serang_ms)
     game.registry.set('kelas', status.pemain.kelas)
     game.registry.set('kustom', status.pemain.kustom)
-  }, [status, selisih])
+    if (katalog) {
+      alatRef.current = {
+        beliung: tierAlat(status, katalog, 'beliung'),
+        sabit: tierAlat(status, katalog, 'sabit'),
+      }
+      game.registry.set('alat', alatRef.current)
+    }
+  }, [status, selisih, katalog])
 
   useEffect(() => {
     const game = gameRef.current
@@ -393,12 +274,14 @@ export default function GamePage() {
     game.registry.set('dunia', dunia)
   }, [dunia])
 
-  // Kunci gerakan saat panel terbuka atau ada proses berjalan
   useEffect(() => {
-    gameRef.current?.registry.set('terkunci', Boolean(panel) || sibuk)
-  }, [panel, sibuk])
+    const game = gameRef.current
+    if (!game) return
+    game.registry.set('sibuk', sibuk)
+    game.registry.set('terkunci', sibuk)
+  }, [sibuk])
 
-  // Waktu tunggu gugur habis: ambil status terbaru supaya pemain bangkit
+  // Waktu gugur habis: ambil status terbaru supaya pemain bangkit
   useEffect(() => {
     if (!status?.pemain.mati_sampai || segarkanMati.current) return
     if (Date.parse(status.pemain.mati_sampai) - (sekarang + selisih) > 0) return
@@ -413,14 +296,71 @@ export default function GamePage() {
       })
   }, [sekarang, status, selisih])
 
+  // ---------- Suara ----------
+  useEffect(() => {
+    if (tahap === 'siap' || tahap === 'karakter') suara.mulaiMusik()
+  }, [tahap])
+  useEffect(() => () => suara.hentikanMusik(), [])
+
+  useEffect(() => {
+    function tekan(e) {
+      if (e.code !== 'KeyM' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      const tag = document.activeElement?.tagName
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      suara.setNyala(!suara.cuplikan().nyala)
+    }
+    window.addEventListener('keydown', tekan)
+    return () => window.removeEventListener('keydown', tekan)
+  }, [])
+
+  useEffect(() => {
+    if (!status) return
+    const { gold, level } = status.pemain
+    if (levelLalu.current !== null && level > levelLalu.current) suara.sfx('levelup')
+    else if (emasLalu.current !== null && gold > emasLalu.current) suara.sfx('koin')
+    else if (emasLalu.current !== null && gold < emasLalu.current) suara.sfx('beli')
+    levelLalu.current = level
+    emasLalu.current = gold
+  }, [status])
+
+  // ---------- Mode HP ----------
+  useEffect(() => {
+    if (!modeHP) return
+    const bodyLama = document.body.style.overflow
+    const htmlLama = document.documentElement.style.overscrollBehavior
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overscrollBehavior = 'none'
+    return () => {
+      document.body.style.overflow = bodyLama
+      document.documentElement.style.overscrollBehavior = htmlLama
+    }
+  }, [modeHP])
+
+  useEffect(() => {
+    function segarkan() {
+      setTimeout(() => gameRef.current?.scale.refresh(), 150)
+    }
+    window.addEventListener('orientationchange', segarkan)
+    window.addEventListener('resize', segarkan)
+    return () => {
+      window.removeEventListener('orientationchange', segarkan)
+      window.removeEventListener('resize', segarkan)
+    }
+  }, [])
+
+  useEffect(() => () => clearTimeout(forageTimer.current), [])
+
+  // ---------- Aksi ke server ----------
   async function jalankan(fungsi, pesanSukses) {
     setSibuk(true)
     try {
       const hasil = await fungsi()
       terapkan(hasil.status ?? hasil)
-      if (pesanSukses) setCatatan(pesanSukses)
+      if (pesanSukses) info(pesanSukses)
+      return hasil
     } catch (err) {
-      setCatatan(err.message)
+      info(err.message)
+      return null
     } finally {
       setSibuk(false)
     }
@@ -434,14 +374,9 @@ export default function GamePage() {
       })
   }
 
-  function scene() {
-    return gameRef.current?.scene.getScene('dunia')
-  }
-
   async function serangMusuh(id) {
-    
+    suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
     try {
-      suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
       const { hasil, balasan, spawn, status: st } = await serang(id)
       setDunia(
         (d) =>
@@ -452,17 +387,19 @@ export default function GamePage() {
           },
       )
       terapkan(st)
-      setTarget({ nama: hasil.nama, hp: hasil.hp, hp_maks: hasil.hp_maks })
+      gameRef.current?.events.emit('target', { nama: hasil.nama, hp: hasil.hp, hp_maks: hasil.hp_maks })
       scene()?.tampilkanPukulan(spawn.id, hasil)
       suara.sfx(hasil.mati ? 'bunuh' : 'pukul')
-      if (balasan) scene()?.tampilkanLuka(balasan)
-      if (balasan) suara.sfx(balasan.mati ? 'gugur' : 'kena')
-      if (balasan) batalForage()
-      if (hasil.mati) setCatatan(ringkasKill(hasil))
-      if (balasan?.mati) setCatatan('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
+      if (balasan) {
+        scene()?.tampilkanLuka(balasan)
+        suara.sfx(balasan.mati ? 'gugur' : 'kena')
+        batalForage()
+      }
+      if (hasil.mati) info(ringkasKill(hasil))
+      if (balasan?.mati) info('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
     } catch (err) {
       if (SENYAP.includes(err.message)) return
-      setCatatan(err.message)
+      info(err.message)
       segarkanDunia()
     }
   }
@@ -474,18 +411,18 @@ export default function GamePage() {
       batalForage()
       scene()?.tampilkanLuka(hasil)
       suara.sfx(hasil.mati ? 'gugur' : 'kena')
-      if (hasil.mati) setCatatan('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
+      if (hasil.mati) info('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
     } catch (err) {
       if (SENYAP.includes(err.message)) return
-      setCatatan(err.message)
+      info(err.message)
     }
   }
 
-    function bersihForage() {
+  // ---------- Mengumpulkan bahan ----------
+  function bersihForage() {
     clearTimeout(forageTimer.current)
     forageTimer.current = null
     forageRef.current = null
-    setForage(null)
     gameRef.current?.registry.set('forage', null)
   }
 
@@ -511,14 +448,14 @@ export default function GamePage() {
       )
       scene()?.tampilkanForage(f.id, `+${h.jumlah} ${h.item}`)
       suara.sfx('ambil')
-      setCatatan(`+${h.jumlah} ${h.item}, +${h.xp} XP${h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''}`)
+      info(`+${h.jumlah} ${h.item}, +${h.xp} XP${h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''}`)
     } catch (err) {
       if (err.message === 'Belum selesai' && boleh) {
         forageTimer.current = setTimeout(() => selesaiForage(false), 700)
         return
       }
       bersihForage()
-      setCatatan(err.message)
+      info(err.message)
     }
   }
 
@@ -528,11 +465,10 @@ export default function GamePage() {
       const r = await forageMulai(id)
       const f = { id, nama: r.nama, jenis: r.jenis, mulai: Date.now(), durasi: r.durasi_ms }
       forageRef.current = f
-      setForage(f)
       gameRef.current?.registry.set('forage', f)
       forageTimer.current = setTimeout(() => selesaiForage(true), r.durasi_ms + 150)
     } catch (err) {
-      setCatatan(err.message)
+      info(err.message)
     }
   }
 
@@ -544,58 +480,11 @@ export default function GamePage() {
     })
   }
 
-  function aksiPetak(i) {
-    const p = status.petak.find((x) => x.indeks === i)
-    if (!p) {
-      setIndeksPetak(i)
-      setPanel('tanam')
-      return
-    }
-    if (Date.parse(p.siap_pada) > Date.now() + selisih) {
-      setCatatan('Tanaman belum siap dipanen.')
-      return
-    }
-    jalankan(() => panen(i), 'Panen berhasil! Hasilnya masuk ke inventaris.')
-  }
-
-    async function bukaNpc(o) {
-    if (o.jenisNpc === 'kelas') {
-      setPanel('kelas')
-      return
-    }
-    try {
-      setMisi(await ambilMisi())
-      setPanel(`misi:${o.npc}`)
-    } catch (err) {
-      setCatatan(err.message)
-    }
-  }
-
-
-    async function simpanKarakter(kelas, kustom) {
-    setSibuk(true)
-    setGalatKarakter('')
-    try {
-      terapkan(await buatKarakter(kelas, kustom))
-      setTahap('siap')
-    } catch (err) {
-      setGalatKarakter(err.message)
-    }
-    setSibuk(false)
-  }
-
+  // Jendela, toko, dan dialog ditangani di dalam game; di sini hanya titik pengumpulan
   function aksi(o) {
-    if (sibuk || panel || !status || status.pemain.mati_sampai) return
-    if (o.jenis === 'toko') setPanel('toko')
-    else if (o.jenis === 'rumah') setPanel('rumah')
-    else if (o.jenis === 'petak') aksiPetak(o.indeks)
-    else if (o.jenis === 'forage') mulaiForage(o.id)
-    else if (o.jenis === 'npc') bukaNpc(o)
-    else if (o.jenis === 'papan') {
-      setCatatan(
-                'Jir mati awokaowkawok. Klik atau tekan Spasi untuk menebas. Musuh akan mengejar dan membalas, jadi jaga HP-mu. Kalau HP habis, kamu menunggu 5 menit. Tiap naik level kamu mendapat 3 poin untuk Health atau Kecepatan serang. Senjata dan zirah dibeli di Pandai Besi. Tekan Enter untuk mengobrol dengan pemain lain.',
-      )
-    }
+    if (sibuk || !status || status.pemain.mati_sampai) return
+    if (gameRef.current?.registry.get('uiBuka')) return
+    if (o.jenis === 'forage') mulaiForage(o.id)
   }
 
   useEffect(() => {
@@ -603,7 +492,68 @@ export default function GamePage() {
     serangRef.current = serangMusuh
     diserangRef.current = diserangMusuh
     batalForageRef.current = batalForage
+    mpApi.current = { kirimPosisi, sinkron }
+    apiRef.current = {
+      pakai: (id) => jalankan(() => pakai(id), 'Item dipakai.'),
+      beli: (id, n) => jalankan(() => beli(id, n), 'Pembelian berhasil.'),
+      jual: (id, n) => jalankan(() => jual(id, n), 'Terjual.'),
+      tambahPoin: (jenis) => jalankan(() => tambahPoin(jenis, 1), 'Poin ditambahkan.'),
+      tanam: (i, t) => jalankan(() => tanam(i, t), 'Bibit ditanam.'),
+      panen: (i) => jalankan(() => panen(i), 'Panen berhasil! Hasilnya masuk ke inventaris.'),
+      upgradeRumah: () => jalankan(() => upgradeRumah(), 'Rumah di-upgrade!'),
+      kirimHadiah: (penerima, item, n) =>
+        jalankan(() => kirimHadiah(penerima, item, n), 'Hadiah terkirim. Penerima mengambilnya lewat chat pribadi (berlaku 15 menit).'),
+      adminPakai: (id) => jalankan(() => adminPakai(id), 'Perlengkapan dipakai (gratis).'),
+      adminAtur: (kelas, kustom) => jalankan(() => adminAturKarakter(kelas, kustom), 'Karakter diperbarui.'),
+      ambilMisi: async () => {
+        try {
+          return await ambilMisi()
+        } catch (err) {
+          info(err.message)
+          return null
+        }
+      },
+      klaimMisi: async (id) => {
+        const h = await jalankan(() => klaimMisi(id))
+        if (!h) return null
+        info(
+          `Misi selesai: ${h.judul}. +${h.xp} XP, +${h.gold} gold${
+            h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''
+          }`,
+        )
+        return h.misi
+      },
+      buatKarakter: async (kelas, kustom) => {
+        setSibuk(true)
+        try {
+          terapkan(await buatKarakter(kelas, kustom))
+          setTahap('siap')
+        } catch (err) {
+          info(err.message)
+        }
+        setSibuk(false)
+      },
+      keluar: () => navigate('/'),
+    }
   })
+
+  // ---------- Tombol layar sentuh ----------
+  function aturArah(arah) {
+    Object.assign(kontrol.current, arah)
+  }
+  function tekanA() {
+    const game = gameRef.current
+    if (game?.registry.get('uiBuka')) game.events.emit('tombol', 'A')
+    else kontrol.current.serang = true
+  }
+  function tekanB() {
+    const game = gameRef.current
+    if (game?.registry.get('uiBuka')) game.events.emit('tombol', 'B')
+    else kontrol.current.aksi = true
+  }
+  function tekanMenu() {
+    gameRef.current?.events.emit('tombol', 'START')
+  }
 
   if (tahap === 'memuat') return <p className="redup">Memuat game…</p>
   if (tahap === 'gagal') {
@@ -615,84 +565,13 @@ export default function GamePage() {
     )
   }
 
-    if (tahap === 'karakter') {
-    const awal = awalKarakter.baru
-      ? { nama: awalKarakter.nama, kelas: 'ksatria', kustom: null }
-      : { nama: awalKarakter.pemain.nama, kelas: awalKarakter.pemain.kelas.id, kustom: awalKarakter.pemain.kustom }
-    return (
-      <>
-        <h1>Buat karakter</h1>
-        {!awalKarakter.baru && (
-          <p className="redup">Progresmu aman. Pilih role dan penampilan sekali saja, lalu lanjutkan bermain.</p>
-        )}
-        <PembuatKarakter
-          mode="awal"
-          nama={awal.nama}
-          awalKelas={awal.kelas}
-          awalKustom={awal.kustom}
-          daftarKelas={katalog.kelas}
-          sibuk={sibuk}
-          galat={galatKarakter}
-          onSimpan={simpanKarakter}
-        />
-      </>
-    )
-  }
-
-  const p = status.pemain
-  const waktuServer = sekarang + selisih
-  const sejakStatus = Math.max(0, waktuServer - Date.parse(status.waktu_server))
-  const hpTampil = p.mati_sampai ? 0 : Math.min(p.hp_maks, p.hp + Math.floor(sejakStatus / 4000))
-  const persenHp = Math.round((hpTampil / p.hp_maks) * 100)
-  const persenXp = Math.min(100, Math.round((p.xp / p.xp_butuh) * 100))
-  const sisaReset = formatSisa(Date.parse(status.harian.reset_pada) - waktuServer)
-  const sisaMati = p.mati_sampai ? formatSisa(Date.parse(p.mati_sampai) - waktuServer) : null
-  const bos = dunia?.spawn.find((s) => s.jenis === 'bos')
-  
-    const bosTeks = bos
-    ? bos.keadaan === 'hidup'
-      ? `${format(bos.hp)} / ${format(bos.hp_maks)} HP · kontribusimu: ${format(dunia.sumbangan_bos ?? 0)}`
-      : bos.hidup_lagi_pada
-        ? `Dikalahkan. Muncul lagi dalam ${formatSisa(Date.parse(bos.hidup_lagi_pada) - waktuServer)}`
-        : 'Dikalahkan'
-    : ''
-
-    const propHud = {
-    pemain: p,
-    hp: hpTampil,
-    persenHp,
-    persenXp,
-    harian: status.harian,
-    sisaReset,
-    peta,
-    target,
-    bos: peta === 'server' ? bos : null,
-    bosTeks,
-    forage,
-    aman,
-  }
-
-  function aturArah(arah) {
-    Object.assign(kontrol.current, arah)
-  }
-
   return (
     <>
-      <h1>Citana World</h1>
-              <div className={`game-area${modeHP ? ' gb-rangka' : ''}`}>
+      {!modeHP && <h1>Game</h1>}
+      <div className={`game-area${modeHP ? ' gb-rangka' : ''}`}>
         <div className="layout-game">
           <div className="game-bingkai">
             <div ref={wadah} className="game-kanvas" />
-            <HudGame bagian={modeHP ? 'musuh' : 'semua'} {...propHud} />
-            {sisaMati && (
-              <div className="game-mati" role="alert">
-                <strong>Kamu gugur</strong>
-                <span>Hidup kembali di desa dalam {sisaMati}</span>
-              </div>
-            )}
-            {modeHP && catatan && (
-              <p className="gb-toast" role="status">{catatan}</p>
-            )}
           </div>
 
           <aside className={`layout-chat${chatBuka ? ' terbuka' : ''}`} aria-label="Chat">
@@ -701,7 +580,11 @@ export default function GamePage() {
                 Tutup chat
               </button>
             )}
-            {peta !== 'server' ? (
+            {tahap !== 'siap' ? (
+              <div className="game-chat">
+                <p className="redup kecil">Chat tersedia setelah karaktermu dibuat.</p>
+              </div>
+            ) : peta !== 'server' ? (
               <div className="game-chat">
                 <p className="redup kecil">
                   Chat dan pemain lain hanya ada di kerajaan (dunia bersama). Rumah pribadi hanya milikmu.
@@ -719,7 +602,7 @@ export default function GamePage() {
                 userId={userId}
                 katalog={katalog}
                 sekitar={sekitar}
-                admin={profil?.peran === 'admin'}
+                admin={admin}
                 onKirim={chat.kirim}
                 onAksiHadiah={chat.aksiHadiah}
                 onHapus={chat.hapus}
@@ -733,684 +616,21 @@ export default function GamePage() {
           </aside>
         </div>
 
-        {modeHP && (
-          <div className="gb-hud">
-            <HudGame bagian="pemain" {...propHud} />
-          </div>
-        )}
-
-        <div className="aksi">
-          {modeHP && <Link to="/" className="tombol">Keluar</Link>}
-          <button type="button" className="tombol" onClick={() => setPanel('inventaris')}>
-            {modeHP ? 'Tas' : 'Inventaris'}
-          </button>
-          <button type="button" className="tombol" onClick={() => setPanel('status')}>
-            Status
-            {p.poin_sisa > 0 ? (modeHP ? ` (${p.poin_sisa})` : ` (${p.poin_sisa} poin)`) : ''}
-          </button>
-          {modeHP && (
-            <button type="button" className="tombol" onClick={alihChat}>
-              Chat{belumBaca > 0 ? ` (${belumBaca})` : ''}
-            </button>
-          )}
-          <button type="button" className="tombol" aria-pressed={suaraNyala} onClick={() => suara.setNyala(!suaraNyala)}>
-            {modeHP ? (suaraNyala ? 'Suara' : 'Mute') : `Suara: ${suaraNyala ? 'nyala' : 'mati'}`}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={suaraVolume}
-            aria-label="Volume"
-            onChange={(e) => suara.setVolume(e.target.value)}
-          />
-          {admin && (
-            <button type="button" className="tombol" onClick={() => setPanel('debug')}>Debug</button>
-          )}
-          <span className="redup kecil">Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E</span>
-        </div>
-
-        {!modeHP && catatan && <p className="game-catatan" role="status">{catatan}</p>}
-
         <KontrolGB
           onArah={aturArah}
-          onSerang={() => {
-            kontrol.current.serang = true
-          }}
-          onAksi={() => {
-            kontrol.current.aksi = true
-          }}
+          onSerang={tekanA}
+          onAksi={tekanB}
+          onMenu={tekanMenu}
+          onObrol={alihChat}
+          belumBaca={belumBaca}
         />
 
-        {panel && (
-          <div className="game-panel" role="dialog" aria-modal="true">
-            {panel === 'inventaris' && (
-              <PanelInventaris
-                status={status}
-                katalog={katalog}
-                sibuk={sibuk}
-                sekitar={sekitar}
-                onPakai={(id) => jalankan(() => pakai(id))}
-                onHadiah={(penerima, item, jumlah) =>
-                  jalankan(
-                    () => kirimHadiah(penerima, item, jumlah),
-                    'Hadiah terkirim. Penerima mengambilnya lewat chat pribadi (berlaku 15 menit).',
-                  )
-                }
-              />
-            )}
-
-            {panel === 'status' && (
-              <PanelStatus
-                status={status}
-                sibuk={sibuk}
-                onTambah={(jenis) => jalankan(() => tambahPoin(jenis, 1))}
-              />
-            )}
-
-            {panel === 'toko' && (
-              <PanelToko
-                status={status}
-                katalog={katalog}
-                dunia={dunia}
-                sibuk={sibuk}
-                onBeli={(id, n) => jalankan(() => beli(id, n))}
-                onJual={(id, n) => jalankan(() => jual(id, n))}
-                onPakai={(id) => jalankan(() => pakai(id))}
-              />
-            )}
-
-            {panel === 'rumah' && (
-              <PanelRumah
-                status={status}
-                sibuk={sibuk}
-                onUpgrade={() => jalankan(() => upgradeRumah(), 'Rumah berhasil di-upgrade!')}
-              />
-            )}
-
-            {panel === 'tanam' && (
-              <PanelTanam
-                status={status}
-                katalog={katalog}
-                sibuk={sibuk}
-                onTanam={async (id) => {
-                  await jalankan(() => tanam(indeksPetak, id), 'Bibit ditanam.')
-                  setPanel(null)
-                }}
-              />
-            )}
-
-                        {(panel === 'misi:kapten' || panel === 'misi:herbalis') && (
-              <PanelMisi
-                npc={panel.slice(5)}
-                misi={misi}
-                sibuk={sibuk}
-                sisaReset={sisaReset}
-                onKlaim={(id) =>
-                  jalankan(async () => {
-                    const h = await klaimMisi(id)
-                    setMisi(h.misi)
-                    setCatatan(
-                      `Misi selesai: ${h.judul}. +${h.xp} XP, +${h.gold} gold${
-                        h.level_naik > 0 ? '. Naik level! Kamu mendapat 3 poin.' : ''
-                      }`,
-                    )
-                    return h
-                  })
-                }
-              />
-            )}
-
-            {panel === 'kelas' && <PanelInfoKelas status={status} katalog={katalog} />}
-
-            {panel === 'debug' && admin && (
-              <PanelDebug
-                status={status}
-                katalog={katalog}
-                sibuk={sibuk}
-                waktu={waktuPaksa}
-                onWaktu={setWaktuPaksa}
-                onPakaiGratis={(id) => jalankan(() => adminPakai(id), 'Perlengkapan dipakai (gratis).')}
-                onSimpanKarakter={(kelas, kustom) =>
-                  jalankan(() => adminAturKarakter(kelas, kustom), 'Karakter diperbarui.')
-                }
-              />
-            )}
-
-            <button type="button" className="tombol" onClick={() => setPanel(null)}>Tutup</button>
-          </div>
+        {!modeHP && (
+          <p className="redup kecil game-petunjuk">
+            Gerak: WASD / panah · Serang: klik atau Spasi · Aksi: E · Menu: Esc · Suara: M
+          </p>
         )}
       </div>
     </>
   )
 }
-
-function dipakai(status, item) {
-  return status.pemain.senjata?.id === item.id || status.pemain.armor?.id === item.id
-}
-
-const KATEGORI_HADIAH = ['bibit', 'panen', 'ramuan', 'senjata', 'armor', 'tumbuhan', 'ore']
-
-function PanelInventaris({ status, katalog, sibuk, sekitar, onPakai, onHadiah }) {
-  const [buka, setBuka] = useState(null)
-  const [pilihan, setPilihan] = useState('')
-  const [jumlah, setJumlah] = useState(1)
-  const dekat = sekitar.filter((s) => s.dekat)
-  const penerima = dekat.some((s) => s.id === pilihan) ? pilihan : (dekat[0]?.id ?? '')
-  const terdekat = sekitar[0]
-
-  async function kirim(i, perlengkapan) {
-    const n = perlengkapan ? 1 : Math.min(i.jumlah, Math.max(1, Number(jumlah) || 1))
-    await onHadiah(penerima, i.item_id, n)
-    setBuka(null)
-    setJumlah(1)
-  }
-
-  return (
-    <>
-      <h2>Inventaris</h2>
-      {status.inventaris.length === 0 && <p className="redup">Inventaris kosong.</p>}
-      <ul className="daftar">
-        {status.inventaris.map((i) => {
-          const item = katalog.item.find((k) => k.id === i.item_id)
-          const bisaPakai = item && ['senjata', 'armor', 'ramuan'].includes(item.kategori)
-          const sedangDipakai = item && dipakai(status, item)
-          const bisaHadiah = item && KATEGORI_HADIAH.includes(item.kategori) && !sedangDipakai
-          const perlengkapan = item && ['senjata', 'armor'].includes(item.kategori)
-          return (
-            <Fragment key={i.item_id}>
-              <li>
-                <span>
-                  {item?.nama ?? i.item_id} × {i.jumlah}
-                  {item?.attack ? <small className="redup"> · +{item.attack} ATK</small> : null}
-                  {item?.defense ? <small className="redup"> · +{item.defense} DEF</small> : null}
-                </span>
-                <span className="aksi">
-                  {sedangDipakai ? (
-                    <small className="redup">Dipakai</small>
-                  ) : (
-                    bisaPakai && (
-                      <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakai(i.item_id)}>
-                        Pakai
-                      </button>
-                    )
-                  )}
-                  {bisaHadiah && (
-                    <button
-                      type="button"
-                      className="tombol kecil"
-                      disabled={sibuk || dekat.length === 0}
-                      title={dekat.length === 0 ? 'Dekati pemain lain dulu' : 'Hadiahkan ke pemain di dekatmu'}
-                      onClick={() => setBuka(buka === i.item_id ? null : i.item_id)}
-                    >
-                      Hadiahkan ke player lain
-                    </button>
-                  )}
-                </span>
-              </li>
-              {buka === i.item_id && bisaHadiah && (
-                <li className="game-bentuk-hadiah">
-                  <label>
-                    Untuk{' '}
-                    <select value={penerima} onChange={(e) => setPilihan(e.target.value)}>
-                      {dekat.map((s) => (
-                        <option key={s.id} value={s.id}>{s.nama}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {!perlengkapan && (
-                    <label>
-                      Jumlah{' '}
-                      <input
-                        type="number"
-                        min={1}
-                        max={i.jumlah}
-                        value={jumlah}
-                        onChange={(e) => setJumlah(e.target.value)}
-                      />
-                    </label>
-                  )}
-                  <button
-                    type="button"
-                    className="tombol kecil"
-                    disabled={sibuk || !penerima}
-                    onClick={() => kirim(i, perlengkapan)}
-                  >
-                    Kirim hadiah
-                  </button>
-                </li>
-              )}
-            </Fragment>
-          )
-        })}
-      </ul>
-      <p className="redup kecil">
-        {dekat.length > 0
-          ? `Dalam jangkauan hadiah: ${dekat.map((s) => s.nama).join(', ')}.`
-          : `Untuk menghadiahkan item, dekati pemain lain (sekitar 140 px)${
-              terdekat ? `. Pemain terdekat: ${terdekat.nama}, ${terdekat.jarak} px ke arah ${terdekat.arah}` : ''
-            }.`}
-      </p>
-    </>
-  )
-}
-
-function BarisPoin({ nama, nilai, maks, keterangan, bisaTambah, onTambah }) {
-  return (
-    <div className="baris-poin">
-      <div className="baris-poin-kepala">
-        <strong>{nama}</strong>
-        <span className="redup kecil">{keterangan}</span>
-        <button type="button" className="tombol kecil" disabled={!bisaTambah} onClick={onTambah}>+1 poin</button>
-      </div>
-      <div className="game-xp" role="progressbar" aria-valuemin={0} aria-valuemax={maks} aria-valuenow={nilai}>
-        <span style={{ width: `${Math.min(100, (nilai / maks) * 100)}%` }} />
-      </div>
-    </div>
-  )
-}
-
-function PanelStatus({ status, sibuk, onTambah }) {
-  const p = status.pemain
-  return (
-    <>
-      <h2>Status</h2>
-      <p>
-        Level {p.level} · Poin tersisa: <strong>{p.poin_sisa}</strong>
-        <small className="redup"> (3 poin tiap naik level)</small>
-      </p>
-      <BarisPoin
-        nama="Health"
-        nilai={p.poin_hp}
-        maks={Math.max(10, p.poin_hp)}
-        keterangan={`HP maks ${p.hp_maks} (+10 per poin)`}
-        bisaTambah={!sibuk && p.poin_sisa > 0}
-        onTambah={() => onTambah('hp')}
-      />
-      <BarisPoin
-        nama="Kecepatan serang"
-        nilai={p.poin_speed}
-        maks={7}
-        keterangan={`Jeda ${p.jeda_serang_ms} ms (maks 7 poin)`}
-        bisaTambah={!sibuk && p.poin_sisa > 0 && p.poin_speed < 7}
-        onTambah={() => onTambah('speed')}
-      />
-      <p className="redup kecil">
-        Kelas: {p.kelas.nama} (jangkauan {p.kelas.jangkauan} px) · Serangan: {p.attack} ({p.senjata?.nama ?? 'tanpa senjata'}) · Pertahanan:{' '}
-        {p.defense} ({p.armor?.nama ?? 'tanpa zirah'}). Attack dan defense bertambah lewat perlengkapan di Pandai Besi. Role tidak bisa diganti (Restart Akun Game ada di menu profil).
-      </p>
-    </>
-  )
-}
-
-function PanelInfoKelas({ status, katalog }) {
-  const kini = status.pemain.kelas
-  return (
-    <>
-      <h2>Guru Elara</h2>
-      <p>
-        Setiap petualang memilih satu jalan. Rolemu: <strong>{kini.nama}</strong>.
-      </p>
-      <p className="redup">
-        Role tidak bisa diganti setelah karakter dibuat. Kalau ingin memulai dengan role lain, gunakan{' '}
-        <strong>Restart Akun Game</strong> di menu profil (klik avatarmu di pojok kanan atas). Restart menghapus
-        seluruh progres game.
-      </p>
-      <ul className="daftar">
-        {katalog.kelas.map((c) => (
-          <li key={c.id}>
-            <span>
-              <strong>{c.nama}</strong>
-              {kini.id === c.id && <small className="redup"> · rolemu</small>}
-              <br />
-              <small className="redup">{c.deskripsi}</small>
-              <br />
-              <small className="redup">
-                Jangkauan {c.jangkauan} px · Damage {c.damage_persen}% · Jeda +{c.jeda_tambah_ms} ms · Damage
-                diterima {c.diterima_persen}% · DEF +{c.def_bonus}
-              </small>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </>
-  )
-}
-
-function PanelDebug({ status, katalog, sibuk, waktu, onWaktu, onPakaiGratis, onSimpanKarakter }) {
-  const [bagian, setBagian] = useState('menu')
-  const [tab, setTab] = useState('senjata')
-  const p = status.pemain
-
-  if (bagian === 'karakter') {
-    return (
-      <>
-        <h2>Debug: penampilan dan role</h2>
-        <PembuatKarakter
-          mode="debug"
-          nama={p.nama}
-          awalKelas={p.kelas.id}
-          awalKustom={p.kustom}
-          daftarKelas={katalog.kelas}
-          sibuk={sibuk}
-          onSimpan={onSimpanKarakter}
-          onBatal={() => setBagian('menu')}
-        />
-      </>
-    )
-  }
-
-  const daftar = katalog.item.filter((i) => i.kategori === tab)
-  const dipakai = (i) => (tab === 'senjata' ? p.senjata?.id : p.armor?.id) === i.id
-  return (
-    <>
-      <h2>Debug (admin)</h2>
-      <p className="redup">Alat uji khusus admin. Perubahan di sini tidak memakai gold.</p>
-      <div className="aksi">
-        <button type="button" className="tombol" onClick={() => setBagian('karakter')}>
-          Ubah penampilan dan role
-        </button>
-      </div>
-
-      <h3>Waktu dunia (hanya terlihat olehmu)</h3>
-      <div className="aksi" role="group" aria-label="Waktu dunia">
-        {[
-          ['otomatis', 'Otomatis'],
-          ['siang', 'Siang'],
-          ['senja', 'Senja'],
-          ['malam', 'Malam'],
-          ['subuh', 'Subuh'],
-        ].map(([kode, nama]) => (
-          <button key={kode} type="button" className="tombol" aria-pressed={waktu === kode} onClick={() => onWaktu(kode)}>
-            {nama}
-          </button>
-        ))}
-      </div>
-      <p className="redup kecil">
-        Otomatis mengikuti jam nyata WITA: gelap sekitar 18.30 sampai 05.00. Pilihan ini hanya mengubah tampilan layarmu
-        sendiri, tidak dikirim ke pemain lain.
-      </p>
-
-
-      <h3>Pakai perlengkapan gratis</h3>
-      <div className="aksi" role="group" aria-label="Jenis perlengkapan">
-        {[['senjata', 'Senjata'], ['armor', 'Armor']].map(([kode, nama]) => (
-          <button key={kode} type="button" className="tombol" aria-pressed={tab === kode} onClick={() => setTab(kode)}>
-            {nama}
-          </button>
-        ))}
-      </div>
-      <ul className="daftar">
-        {daftar.map((i) => (
-          <li key={i.id}>
-            <span>
-              {i.nama}{' '}
-              <small className="redup">
-                · {i.attack ? `+${i.attack} ATK` : i.defense ? `+${i.defense} DEF` : 'dasar'}
-                {i.kelas ? ` · ${i.kelas}` : ''}
-              </small>
-            </span>
-            {dipakai(i) ? (
-              <small className="redup">Dipakai</small>
-            ) : (
-              <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakaiGratis(i.id)}>
-                Pakai gratis
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </>
-  )
-}
-
-function PanelToko({ status, katalog, dunia, sibuk, onBeli, onJual, onPakai }) {
-  const [tab, setTab] = useState('senjata')
-  const gold = status.pemain.gold
-  const level = status.pemain.level
-  const milik = (id) => status.inventaris.find((i) => i.item_id === id)?.jumlah ?? 0
-  const dijual = (kategori) => katalog.item.filter((i) => kategori.includes(i.kategori) && i.harga_beli !== null)
-  const bisaJual = status.inventaris
-    .map((i) => ({ ...i, item: katalog.item.find((k) => k.id === i.item_id) }))
-    .filter((i) => i.item && i.item.harga_jual !== null && !dipakai(status, i.item))
-  const alatUrut = [...(katalog.alat ?? [])].sort((a, b) => a.jenis.localeCompare(b.jenis) || a.tier - b.tier)
-
-  return (
-    <>
-      <h2>Pandai Besi</h2>
-      <p className="redup">Gold: {format(gold)}</p>
-      <div className="aksi" role="group" aria-label="Kategori toko">
-        {[
-          ['senjata', 'Senjata'],
-          ['armor', 'Armor'],
-          ['alat', 'Alat'],
-          ['lain', 'Ramuan & bibit'],
-          ['jual', 'Jual'],
-        ].map(([kode, nama]) => (
-          <button key={kode} type="button" className="tombol" aria-pressed={tab === kode} onClick={() => setTab(kode)}>
-            {nama}
-          </button>
-        ))}
-      </div>
-
-      {(tab === 'senjata' || tab === 'armor') && (
-        <ul className="daftar">
-          {dijual([tab]).filter((i) => !i.kelas || i.kelas === status.pemain.kelas.id).map((i) => (
-            <li key={i.id}>
-              <span>
-                {i.nama}{' '}
-                <small className="redup">
-                  · {i.attack ? `+${i.attack} ATK` : `+${i.defense} DEF`} · {format(i.harga_beli)} gold
-                </small>
-              </span>
-              {dipakai(status, i) ? (
-                <small className="redup">Dipakai</small>
-              ) : milik(i.id) > 0 ? (
-                <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onPakai(i.id)}>Pakai</button>
-              ) : (
-                <button type="button" className="tombol kecil" disabled={sibuk || gold < i.harga_beli} onClick={() => onBeli(i.id, 1)}>
-                  Beli
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {tab === 'alat' && (
-        <>
-          <p className="redup kecil">
-            Alat dibeli berurutan dan mempercepat pengumpulan. Beliung juga menentukan bijih yang bisa ditambang:
-            bijih hanya bisa ditambang kalau beliungmu minimal satu tier di bawahnya.
-          </p>
-          <ul className="daftar">
-            {alatUrut.map((a) => {
-              const item = katalog.item.find((k) => k.id === a.item_id)
-              if (!item) return null
-              const punya = milik(a.item_id) > 0
-              const sebelumnya = alatUrut.find((x) => x.jenis === a.jenis && x.tier === a.tier - 1)
-              const namaSebelumnya = sebelumnya && katalog.item.find((k) => k.id === sebelumnya.item_id)?.nama
-              const punyaSebelumnya = !sebelumnya || milik(sebelumnya.item_id) > 0
-              const stat = a.jenis === 'beliung' ? (dunia?.forage?.tambang ?? 0) : (dunia?.forage?.tumbuhan ?? 0)
-              const okLevel = level >= a.syarat_level
-              const okJumlah = stat >= a.syarat_jumlah
-              const bisa = !punya && punyaSebelumnya && okLevel && okJumlah && gold >= item.harga_beli
-              const membuka =
-                a.jenis === 'beliung' ? (a.tier < 6 ? `membuka bijih ${NAMA_TIER[a.tier + 1]}` : 'tier tertinggi') : null
-              return (
-                <li key={a.item_id}>
-                  <span>
-                    {item.nama}{' '}
-                    <small className="redup">
-                      · {a.kecepatan_persen}% lebih cepat{membuka ? ` · ${membuka}` : ''} · {format(item.harga_beli)} gold
-                    </small>
-                    {!punya && (
-                      <>
-                        <br />
-                        <small className="redup">
-                          {okLevel ? '✓' : '✗'} Level {a.syarat_level}
-                          {namaSebelumnya && <> · {punyaSebelumnya ? '✓' : '✗'} {namaSebelumnya}</>}
-                          {a.syarat_jumlah > 0 && (
-                            <>
-                              {' '}· {okJumlah ? '✓' : '✗'} {a.jenis === 'beliung' ? 'Menambang' : 'Mengumpulkan'}{' '}
-                              {Math.min(stat, a.syarat_jumlah)}/{a.syarat_jumlah}
-                            </>
-                          )}
-                        </small>
-                      </>
-                    )}
-                  </span>
-                  {punya ? (
-                    <small className="redup">Dimiliki</small>
-                  ) : (
-                    <button type="button" className="tombol kecil" disabled={sibuk || !bisa} onClick={() => onBeli(a.item_id, 1)}>
-                      Beli
-                    </button>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </>
-      )}
-
-      {tab === 'lain' && (
-        <ul className="daftar">
-          {dijual(['ramuan', 'bibit']).map((i) => (
-            <li key={i.id}>
-              <span>
-                {i.nama} <small className="redup">· {i.harga_beli} gold{i.pulih ? ` · +${i.pulih} HP` : ''}</small>
-              </span>
-              <span className="aksi">
-                <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onBeli(i.id, 1)}>Beli 1</button>
-                <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onBeli(i.id, 5)}>Beli 5</button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {tab === 'jual' && (
-        <>
-          <p className="redup kecil">Hasil foraging (tumbuhan dan bijih) dijual di sini.</p>
-          {bisaJual.length === 0 && <p className="redup">Tidak ada yang bisa dijual.</p>}
-          <ul className="daftar">
-            {bisaJual.map((i) => (
-              <li key={i.item_id}>
-                <span>
-                  {i.item.nama} × {i.jumlah} <small className="redup">· {i.item.harga_jual} gold/buah</small>
-                </span>
-                <span className="aksi">
-                  <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onJual(i.item_id, 1)}>Jual 1</button>
-                  {i.jumlah > 1 && (
-                    <button type="button" className="tombol kecil" disabled={sibuk} onClick={() => onJual(i.item_id, i.jumlah)}>Jual semua</button>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </>
-  )
-}
-
-function PanelRumah({ status, sibuk, onUpgrade }) {
-  const { rumah, pemain } = status
-  return (
-    <>
-      <h2>Rumahku</h2>
-      <p>Level {rumah.level} · {rumah.jumlah_petak} petak kebun</p>
-      {rumah.berikutnya ? (
-        <>
-          <p className="redup">
-            Level {rumah.berikutnya.level}: {rumah.berikutnya.jumlah_petak} petak, biaya {format(rumah.berikutnya.biaya_gold)} gold.
-          </p>
-          <button
-            type="button"
-            className="tombol utama"
-            disabled={sibuk || pemain.gold < rumah.berikutnya.biaya_gold}
-            onClick={onUpgrade}
-          >
-            Upgrade rumah
-          </button>
-        </>
-      ) : (
-        <p className="redup">Rumahmu sudah di level maksimum.</p>
-      )}
-    </>
-  )
-}
-
-function PanelTanam({ status, katalog, sibuk, onTanam }) {
-  const milik = (id) => status.inventaris.find((i) => i.item_id === id)?.jumlah ?? 0
-  return (
-    <>
-      <h2>Pilih tanaman</h2>
-      <ul className="daftar">
-        {katalog.tanaman.map((t) => (
-          <li key={t.id}>
-            <span>
-              {t.nama}{' '}
-              <small className="redup">
-                · tumbuh {formatDurasi(t.durasi_detik)} · hasil {t.hasil_jumlah} · bibit: {milik(t.bibit_item)}
-              </small>
-            </span>
-            <button
-              type="button"
-              className="tombol kecil"
-              disabled={sibuk || milik(t.bibit_item) < 1}
-              onClick={() => onTanam(t.id)}
-            >
-              Tanam
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p className="redup kecil">Bibit dijual di Pandai Besi, di kerajaan (dunia bersama).</p>
-    </>
-  )
-}
-const NAMA_NPC = { kapten: 'Kapten Rowan', herbalis: 'Herbalis Mira' }
-const SAPAAN = {
-  kapten: 'Perbatasan butuh tangan yang cekatan. Selesaikan tugas hari ini dan ambil upahmu.',
-  herbalis: 'Hutan dan tambang penuh bahan berharga. Bantu aku mengumpulkannya.',
-}
-
-function PanelMisi({ npc, misi, sibuk, sisaReset, onKlaim }) {
-  const daftar = misi?.quest.filter((m) => m.npc === npc) ?? []
-  return (
-    <>
-      <h2>{NAMA_NPC[npc]}</h2>
-      <p className="redup">{SAPAAN[npc]}</p>
-      {daftar.length === 0 && <p className="redup">Belum ada misi untukmu hari ini.</p>}
-      <ul className="daftar">
-        {daftar.map((m) => {
-          const selesai = m.progres >= m.jumlah
-          return (
-            <li key={m.id}>
-              <span>
-                <strong>{m.judul}</strong>
-                <br />
-                <progress className="progres-misi" max={m.jumlah} value={m.progres} />{' '}
-                <small>{m.progres}/{m.jumlah}</small>
-                <br />
-                <small className="redup">Hadiah: +{m.xp} XP · +{m.gold} gold</small>
-              </span>
-              {m.status === 'diambil' ? (
-                <small className="redup">Selesai ✓</small>
-              ) : (
-                <button type="button" className="tombol kecil" disabled={sibuk || !selesai} onClick={() => onKlaim(m.id)}>
-                  {selesai ? 'Ambil hadiah' : 'Belum selesai'}
-                </button>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      <p className="redup kecil">Misi baru muncul dalam {sisaReset}.</p>
-    </>
-  )
-}
-

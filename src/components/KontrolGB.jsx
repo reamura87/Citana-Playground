@@ -89,9 +89,15 @@ function TombolGB({ label, nama, kelas, onTekan, ulang = false }) {
   )
 }
 
-export default function KontrolGB({ onArah, onSerang, onAksi }) {
+export default function KontrolGB({ onArah, onSerang, onAksi, onMenu, onObrol, belumBaca = 0 }) {
   return (
     <div className="game-kontrol gb-kontrol" aria-label="Kontrol layar sentuh">
+      <button type="button" className="gb-pil gb-obrol" onClick={onObrol}>
+        CHAT{belumBaca > 0 ? ` (${belumBaca})` : ''}
+      </button>
+      <button type="button" className="gb-pil gb-mulai" onClick={onMenu}>
+        MENU
+      </button>
       <Dpad onArah={onArah} />
       <div className="gb-tombol">
         <TombolGB label="B" nama="Aksi" kelas="gb-b" onTekan={onAksi} />
