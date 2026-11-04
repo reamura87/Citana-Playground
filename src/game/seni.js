@@ -1032,3 +1032,141 @@ export function gambarWajah(o) {
   }
   return perhalus(c.kanvas)
 }
+
+// ---------- Dungeon ----------
+export function gambarHantu(f) {
+  const c = baru(32, 36)
+  const { p, elips } = c
+  const naik = f === 1 ? 1 : 0
+  elips('rgba(0,0,0,0.2)', 16, 33, 9, 2)
+  elips('#cfe0ff', 16, 14 - naik, 10, 11)
+  for (let y = 14; y < 30; y += 1) p('#cfe0ff', 6, y - naik, 20, 1)
+  for (let y = 10; y < 30; y += 1) p('#aebfe6', 20, y - naik, 6, 1)
+  for (let x = 6; x < 26; x += 4) {
+    const g = (x / 4 + f) % 2 ? 3 : 0
+    p('#cfe0ff', x, 29 - naik, 4, 3 + g)
+    p('#aebfe6', x + 2, 29 - naik, 2, 3 + g)
+  }
+  elips('#2a1f4a', 12, 13 - naik, 2, 3)
+  elips('#2a1f4a', 20, 13 - naik, 2, 3)
+  p('#c27bff', 12, 13 - naik, 1, 2)
+  p('#c27bff', 20, 13 - naik, 1, 2)
+  elips('#2a1f4a', 16, 20 - naik, 2, 3)
+  p('#cfe0ff', 4, 17 - naik, 3, 6)
+  p('#cfe0ff', 25, 17 - naik, 3, 6)
+  return c.kanvas
+}
+
+export function gambarLich(f) {
+  const c = baru(80, 96)
+  const { p, k, elips } = c
+  const naik = f === 1 ? 2 : 0
+  elips('rgba(0,0,0,0.3)', 40, 92, 30, 4)
+  for (let y = 40; y < 90; y += 1) {
+    const hw = 14 + (y - 40) * 0.55
+    p('#3b1f5c', 40 - hw, y, hw * 2, 1)
+    p('#2a1442', 40, y, hw, 1)
+  }
+  for (let x = 12; x < 68; x += 6) p('#2a1442', x, 88, 4, 4)
+  p('#d4af37', 28, 62, 24, 3)
+  p('#6fe4f0', 38, 61, 4, 5)
+  k('#d8d2bd', 30, 42 - naik, 20, 18)
+  for (let y = 44; y < 58; y += 4) p('#2a1f3a', 32, y - naik, 16, 1)
+  p('#2a1f3a', 39, 42 - naik, 2, 18)
+  k('#4b2a75', 14, 38 - naik, 14, 8)
+  k('#4b2a75', 52, 38 - naik, 14, 8)
+  k('#d8d2bd', 12, 46 - naik, 5, 20)
+  k('#d8d2bd', 63, 46 - naik, 5, 20)
+  elips('#ece6d2', 40, 26 - naik, 14, 15)
+  k('#ece6d2', 30, 32 - naik, 20, 10)
+  p('#1a1030', 32, 24 - naik, 6, 6)
+  p('#1a1030', 42, 24 - naik, 6, 6)
+  p('#c27bff', 34, 26 - naik, 2, 3)
+  p('#c27bff', 44, 26 - naik, 2, 3)
+  p('#1a1030', 38, 31 - naik, 4, 3)
+  for (let x = 32; x < 48; x += 3) p('#1a1030', x, 38 - naik, 1, 4)
+  k('#d4af37', 28, 12 - naik, 24, 6)
+  for (const x of [28, 34, 40, 46]) p('#d4af37', x, 6 - naik, 4, 7)
+  p('#c27bff', 39, 8 - naik, 3, 3)
+  k('#4a2f18', 68, 20, 4, 70)
+  elips('#8a3fd0', 70, 14 - naik, 7, 7)
+  elips('#c27bff', 70, 13 - naik, 4, 4)
+  p('#ffffff', 68, 11 - naik, 2, 2)
+  return c.kanvas
+}
+
+export function gambarPeti(buka) {
+  const c = baru(32, 28)
+  const { p, k, elips } = c
+  elips('rgba(0,0,0,0.28)', 16, 26, 13, 2)
+  k('#6b4423', 3, 12, 26, 13)
+  p('#4a2f18', 3, 17, 26, 1)
+  k('#d4af37', 3, 12, 26, 3)
+  k('#d4af37', 14, 12, 4, 13)
+  p('#2a2a2a', 15, 17, 2, 3)
+  if (buka) {
+    k('#8a5a2b', 3, 4, 26, 6)
+    k('#d4af37', 3, 4, 26, 2)
+    p('#ffe27a', 5, 10, 22, 2)
+    p('#fff2b0', 9, 9, 14, 1)
+  } else {
+    k('#8a5a2b', 3, 6, 26, 7)
+    p('#d4af37', 3, 6, 26, 2)
+    p('#d4af37', 14, 6, 4, 7)
+  }
+  return perhalus(c.kanvas)
+}
+
+export function gambarMataAir() {
+  const c = baru(40, 44)
+  const { p, k, elips } = c
+  elips('rgba(0,0,0,0.28)', 20, 41, 17, 3)
+  k('#8d9096', 17, 4, 6, 20)
+  k('#6f737b', 15, 2, 10, 4)
+  elips('#8d9096', 20, 33, 17, 9)
+  elips('#6f737b', 20, 33, 14, 7)
+  elips('#4aa3d9', 20, 33, 12, 5)
+  elips('#8fd6f2', 18, 32, 7, 3)
+  p('#ffffff', 14, 31, 2, 1)
+  p('#ffffff', 25, 34, 2, 1)
+  p('#8fd6f2', 19, 8, 2, 16)
+  p('#c8efff', 19, 8, 1, 12)
+  return perhalus(c.kanvas)
+}
+
+export function gambarPortal(f) {
+  const c = baru(40, 56)
+  const { p, k, elips } = c
+  elips('rgba(0,0,0,0.28)', 20, 53, 16, 3)
+  k('#6f737b', 3, 8, 7, 44)
+  k('#6f737b', 30, 8, 7, 44)
+  k('#8d9096', 1, 4, 38, 8)
+  elips(f === 0 ? '#5a2fb0' : '#6f3fd0', 20, 32, 11, 18)
+  elips(f === 0 ? '#8a5fe8' : '#a77af5', 20, 32, 8, 14)
+  elips(f === 0 ? '#c9b0ff' : '#e0d0ff', 20, 32, 4, 8)
+  p('#ffffff', f === 0 ? 18 : 21, f === 0 ? 24 : 38, 2, 2)
+  return perhalus(c.kanvas)
+}
+
+export function gambarGerbangKripta() {
+  const c = baru(96, 88)
+  const { p, k, elips } = c
+  elips('rgba(0,0,0,0.3)', 48, 84, 44, 4)
+  k('#6f737b', 6, 20, 20, 62)
+  k('#6f737b', 70, 20, 20, 62)
+  k('#8d9096', 2, 10, 92, 14)
+  k('#6f737b', 14, 2, 68, 10)
+  for (let y = 24; y < 80; y += 8) {
+    p('#4f535a', 6, y, 20, 1)
+    p('#4f535a', 70, y, 20, 1)
+  }
+  k('#14101f', 26, 24, 44, 58)
+  elips('#5a2fb0', 48, 56, 18, 26)
+  elips('#8a5fe8', 48, 56, 13, 21)
+  elips('#c9b0ff', 48, 56, 7, 12)
+  elips('#ece6d2', 48, 17, 7, 6)
+  p('#1a1030', 44, 15, 3, 3)
+  p('#1a1030', 50, 15, 3, 3)
+  for (let i = 0; i < 4; i += 1) k('#8d9096', 20 + i * 14, 82 - i * 0, 14, 4)
+  return perhalus(c.kanvas)
+}

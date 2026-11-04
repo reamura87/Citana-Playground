@@ -6,11 +6,12 @@ import { suara } from '../game/suara'
 import {
   adminAturKarakter, adminPakai, ambilDunia, ambilKatalog, ambilMisi, beli, buatKarakter, diserang,
   forageBatal, forageMulai, forageSelesai, jual, kirimHadiah, klaimMisi, masukGame, pakai, panen,
-  serang, tambahPoin, tanam, upgradeRumah,
+  serang, tambahPoin, tanam, upgradeRumah, dungeonDiserang, dungeonKeluar, dungeonMasuk, dungeonPeti, dungeonPulih, dungeonSerang,
 } from '../lib/gameAPI'
 import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
 import { useModeHP } from '../lib/useModeHP'
 import { useAuth, useSesi } from '../lib/useSesi'
+import { gabungMusuh } from '../game/dungeon'
 
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
 
@@ -43,6 +44,18 @@ function teksMp(status, diizinkan, afk) {
   return 'Menyambung ke multiplayer…'
 }
 
+// Bentuk data "dunia" untuk kripta, supaya scene memakai sistem musuh yang sama
+function duniaDungeon(d, st) {
+  return {
+    spawn: gabungMusuh(d.musuh),
+    peti: d.peti,
+    boss_kalah: d.boss_kalah,
+    waktu_server: st?.waktu_server,
+    forage: { kosong: [] },
+    sumbangan_bos: 0,
+  }
+}
+
 export default function GamePage() {
   const navigate = useNavigate()
   const sesi = useSesi()
@@ -65,7 +78,9 @@ export default function GamePage() {
   const [sekarang, setSekarang] = useState(() => Date.now())
   const [chatBuka, setChatBuka] = useState(false)
   const [idDibaca, setIdDibaca] = useState(0)
-
+  const [dungeon, setDungeon] = useState(null)
+  
+  const petaRef = useRef('server')
   const wadah = useRef(null)
   const gameRef = useRef(null)
   const kontrol = useRef({ kiri: false, kanan: false, atas: false, bawah: false, aksi: false, serang: false })
@@ -237,6 +252,7 @@ export default function GamePage() {
       game.events.on('pemain-sekitar', (d) => setSekitar(d))
       game.events.on('forage-batal', () => batalForageRef.current?.())
       game.events.on('peta', (nama) => {
+        if (nama !== 'dungeon') setDungeon(null)
         batalForageRef.current?.()
         setPeta(nama)
         if (nama === 'server') setTimeout(() => mpApi.current.sinkron?.(), 80)
@@ -270,9 +286,13 @@ export default function GamePage() {
 
   useEffect(() => {
     const game = gameRef.current
-    if (!game || !dunia) return
-    game.registry.set('dunia', dunia)
-  }, [dunia])
+    if (!game) return
+    if (peta === 'dungeon') {
+      if (dungeon && status) game.registry.set('dunia', duniaDungeon(dungeon, status))
+    } else if (dunia) {
+      game.registry.set('dunia', dunia)
+    }
+  }, [dunia, dungeon, peta, status])
 
   useEffect(() => {
     const game = gameRef.current
@@ -374,7 +394,51 @@ export default function GamePage() {
       })
   }
 
+    function perbaruiDungeon(d) {
+    setDungeon(d)
+    if (statusRef.current) gameRef.current?.registry.set('dunia', duniaDungeon(d, statusRef.current))
+  }
+
+  async function serangDungeon(idx) {
+    suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
+    try {
+      const r = await dungeonSerang(idx)
+      terapkan(r.status)
+      perbaruiDungeon(r.dungeon)
+      gameRef.current?.events.emit('target', { nama: r.hasil.nama, hp: r.hasil.hp, hp_maks: r.hasil.hp_maks })
+      scene()?.tampilkanPukulan(idx, r.hasil)
+      suara.sfx(r.hasil.mati ? 'bunuh' : 'pukul')
+      if (r.balasan) {
+        scene()?.tampilkanLuka(r.balasan)
+        suara.sfx(r.balasan.mati ? 'gugur' : 'kena')
+      }
+      if (r.hasil.mati) {
+        info(ringkasKill(r.hasil))
+        if (r.hasil.jenis === 'bos') gameRef.current?.events.emit('hadiah', { judul: 'Lich Agung dikalahkan!', loot: r.loot })
+      }
+      if (r.balasan?.mati) info('Kamu gugur di kripta! Perjalanan dinyatakan gagal.')
+    } catch (err) {
+      if (SENYAP.includes(err.message)) return
+      info(err.message)
+    }
+  }
+
+  async function diserangDungeon(idx) {
+    try {
+      const r = await dungeonDiserang(idx)
+      terapkan(r.status)
+      perbaruiDungeon(r.dungeon)
+      scene()?.tampilkanLuka(r.hasil)
+      suara.sfx(r.hasil.mati ? 'gugur' : 'kena')
+      if (r.hasil.mati) info('Kamu gugur di kripta! Perjalanan dinyatakan gagal.')
+    } catch (err) {
+      if (SENYAP.includes(err.message)) return
+      info(err.message)
+    }
+  }
+
   async function serangMusuh(id) {
+    if (petaRef.current === 'dungeon') return serangDungeon(id)
     suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
     try {
       const { hasil, balasan, spawn, status: st } = await serang(id)
@@ -405,6 +469,7 @@ export default function GamePage() {
   }
 
   async function diserangMusuh(id) {
+    if (petaRef.current === 'dungeon') return diserangDungeon(id)
     try {
       const { hasil, status: st } = await diserang(id)
       terapkan(st)
@@ -493,6 +558,7 @@ export default function GamePage() {
     diserangRef.current = diserangMusuh
     batalForageRef.current = batalForage
     mpApi.current = { kirimPosisi, sinkron }
+    petaRef.current = peta
     apiRef.current = {
       pakai: (id) => jalankan(() => pakai(id), 'Item dipakai.'),
       beli: (id, n) => jalankan(() => beli(id, n), 'Pembelian berhasil.'),
@@ -534,6 +600,47 @@ export default function GamePage() {
         setSibuk(false)
       },
       keluar: () => navigate('/'),
+
+            dungeonMasuk: async () => {
+        setSibuk(true)
+        try {
+          const d = await dungeonMasuk()
+          setDungeon(d)
+          gameRef.current?.registry.set('dunia', duniaDungeon(d, statusRef.current))
+          scene()?.scene.restart({ peta: 'dungeon' })
+          return true
+        } catch (err) {
+          info(err.message)
+          return false
+        } finally {
+          setSibuk(false)
+        }
+      },
+      dungeonKeluar: async () => {
+        try {
+          await dungeonKeluar()
+        } catch (err) {
+          info(err.message)
+          return false
+        }
+        setDungeon(null)
+        scene()?.scene.restart({ peta: 'server', mulai: { x: 1990, y: 640 } })
+        return true
+      },
+      dungeonPeti: async (idx) => {
+        try {
+          const r = await dungeonPeti(idx)
+          terapkan(r.status)
+          perbaruiDungeon(r.dungeon)
+          suara.sfx('koin')
+          return r
+        } catch (err) {
+          info(err.message)
+          return null
+        }
+      },
+      dungeonPulih: () => jalankan(() => dungeonPulih(), 'HP-mu pulih sepenuhnya!'),
+
     }
   })
 
@@ -587,7 +694,7 @@ export default function GamePage() {
             ) : peta !== 'server' ? (
               <div className="game-chat">
                 <p className="redup kecil">
-                  Chat dan pemain lain hanya ada di kerajaan (dunia bersama). Rumah pribadi hanya milikmu.
+                                    Chat dan pemain lain hanya ada di kerajaan (dunia bersama). Rumah pribadi dan kripta hanya milikmu..
                 </p>
               </div>
             ) : chatDiizinkan ? (

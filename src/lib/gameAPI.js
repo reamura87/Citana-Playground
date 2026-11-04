@@ -93,3 +93,10 @@ export function langgananChat({ onBaru, onHapus, onHadiah }) {
     supabase.removeChannel(kanal)
   }
 }
+
+export const dungeonMasuk = () => rpc('game_dungeon_masuk')
+export const dungeonSerang = (idx) => rpc('game_dungeon_serang', { p_idx: idx })
+export const dungeonDiserang = (idx) => rpc('game_dungeon_diserang', { p_idx: idx })
+export const dungeonPeti = (idx) => rpc('game_dungeon_peti', { p_idx: idx })
+export const dungeonPulih = () => rpc('game_dungeon_pulih')
+export const dungeonKeluar = () => rpc('game_dungeon_keluar')

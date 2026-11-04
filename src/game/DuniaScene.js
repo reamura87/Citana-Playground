@@ -8,8 +8,10 @@ import {
 } from './gambar'
 import {
   BANGUNAN, gambarAnjing, gambarBangunan, gambarCahaya, gambarKelas, gambarKucing, gambarNPC2,
-  gambarPandaiBesi2, gambarPohon2, gambarSemak2, lampuBangunan, perhalus, suasana,
+  gambarPandaiBesi2, gambarPohon2, gambarSemak2, lampuBangunan, perhalus, suasana, gambarGerbangKripta, gambarHantu, gambarLich, gambarMataAir, gambarPeti, gambarPortal,
 } from './seni'
+
+import { DUNGEON } from './dungeon'
 
 import {
   DOMAIN_BOS,
@@ -54,6 +56,8 @@ const INFO_MUSUH = {
   kelelawar: { lebar: 32, tinggi: 32, radius: 14, kecepatan: 70, kejar: 120, aggro: 150, lepas: 330, jangkauan: 28, jeda: 1200 },
   laba_laba: { lebar: 32, tinggi: 28, radius: 16, kecepatan: 44, kejar: 80, aggro: 130, lepas: 300, jangkauan: 30, jeda: 1400 },
   troll: { lebar: 48, tinggi: 48, radius: 24, kecepatan: 22, kejar: 50, aggro: 150, lepas: 320, jangkauan: 44, jeda: 2200 },
+    hantu: { lebar: 32, tinggi: 36, radius: 16, kecepatan: 30, kejar: 70, aggro: 140, lepas: 320, jangkauan: 30, jeda: 1500 },
+  lich_agung: { lebar: 80, tinggi: 96, radius: 42, kecepatan: 0, kejar: 0, aggro: 0, lepas: 0, jangkauan: 150, jeda: 2600 },
 }
 
 function formatSisa(ms) {
@@ -106,6 +110,8 @@ export default class DuniaScene extends Phaser.Scene {
     this.menyalaSaatIni = null
     this.malamBerikut = 0
     this.lampuSaya = null
+    this.petiObj = new Map()
+    this.mulaiKhusus = data?.mulai ?? null
   }
 
   create() {
@@ -136,10 +142,10 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.peta === 'server') this.tambahRintangan(DOMAIN_BOS.x, DOMAIN_BOS.y - 14, 70, 28)
     if (def.label) def.label.forEach((l) => this.labelStatis(l.x, l.y, l.teks))
     if (this.peta === 'server') this.tambahForage()
-    this.tambahDekorasi(def)
+    if (this.peta !== 'dungeon') this.tambahDekorasi(def)
 
         // Titik lahir sedikit berbeda untuk tiap pemain supaya tidak bertumpuk
-    const awal = this.titikMulai(def)
+    const awal = this.mulaiKhusus ?? this.titikMulai(def)
     this.pemain = this.add.sprite(awal.x, awal.y, 'pemain_bawah_0')
     this.labelSaya = this.add
       .text(0, 0, this.registry.get('status')?.pemain.nama ?? '', GAYA_NAMA_SAYA)
@@ -220,6 +226,7 @@ export default class DuniaScene extends Phaser.Scene {
       callback: () => {
         this.perbaruiPetak()
         this.perbaruiForageVisual()
+        this.perbaruiDungeon()
       },
     })
 
@@ -228,7 +235,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.game.events.emit('pemain-sekitar', [])
     this.game.events.emit('peta', this.peta)
     if (!this.scene.isActive('ui')) this.scene.launch('ui')
-    this.lampuSaya = this.tambahLampu(this.pemain.x, this.pemain.y - 6, 70, 0.5, false)
+    this.lampuSaya = this.tambahLampu(this.pemain.x, this.pemain.y - 6, this.peta === 'dungeon' ? 110 : 70, 0.6, false)
     this.perbaruiMalam()
   }
 
@@ -254,6 +261,8 @@ export default class DuniaScene extends Phaser.Scene {
       kelelawar: gambarKelelawar,
       laba_laba: gambarLabaLaba,
       troll: gambarTroll,
+      hantu: gambarHantu,
+      lich_agung: gambarLich,
     }
     for (const [id, buat] of Object.entries(pembuatMusuh)) {
       for (const f of [0, 1]) tambah(`musuh_${id}_${f}`, buat(f))
@@ -269,6 +278,12 @@ export default class DuniaScene extends Phaser.Scene {
     tambah('gua', gambarGua())
     tambah('papan', gambarPapan())
     tambah('gerbang', gambarGerbang())
+    tambah('peti_0', gambarPeti(false), false)
+    tambah('peti_1', gambarPeti(true), false)
+    tambah('mataair', gambarMataAir(), false)
+    tambah('portal_0', gambarPortal(0), false)
+    tambah('portal_1', gambarPortal(1), false)
+    tambah('kripta', gambarGerbangKripta(), false)
     for (const n of NPC_DUNIA) tambah(`npc_${n.id}`, gambarNPC2(n.id), false)
     WARNA_BUNGA.forEach((w, i) => tambah(`bunga_${i}`, gambarBunga(w)))
     tambah('petak_buka', gambarPetak(false))
@@ -334,6 +349,10 @@ export default class DuniaScene extends Phaser.Scene {
     const y2 = fy + 5
     if (x1 < 0 || x2 > this.lebarDunia || y1 < 0 || y2 > this.tinggiDunia) return true
     const titik = [[x1, y1], [x2, y1], [x1, y2], [x2, y2], [fx, fy]]
+      if (this.peta === 'dungeon') {
+      const ada = (px, py) => DUNGEON.lantai.some(([lx, ly, lw, lh]) => px >= lx && px <= lx + lw && py >= ly && py <= ly + lh)
+      if (!titik.every(([px, py]) => ada(px, py))) return true
+    }
     for (const b of this.blokir) {
       if (b.tipe === 'kotak') {
         if (x2 > b.x1 && x1 < b.x2 && y2 > b.y1 && y1 < b.y2) return true
@@ -440,6 +459,8 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.peta === 'server') {
       if (this.peta === 'server') this.tambahNpc()
       if (this.peta === 'server') this.tambahHewan()
+      if (this.peta === 'server' && def.kripta) this.tambahKripta(def.kripta)
+      if (this.peta === 'dungeon') this.tambahDungeon()
       for (const t of TITIK_FORAGE) {
         umum.push([t.x - 24, t.y - 24, 48, 48])
         khusus.push([t.x - 24, t.y - 24, 48, 48])
@@ -647,6 +668,7 @@ export default class DuniaScene extends Phaser.Scene {
     // ---------- Siang dan malam ----------
   // Jam dunia (WITA). Admin bisa memaksa lewat registry 'waktuPaksa' (hanya mengubah tampilan sendiri).
   jamDunia() {
+    if (this.peta === 'dungeon') return 0
     const paksa = this.registry.get('waktuPaksa')
     if (paksa === 'siang') return 12
     if (paksa === 'senja') return 18
@@ -776,6 +798,104 @@ export default class DuniaScene extends Phaser.Scene {
     }
   }
 
+    // Penghalang gerak musuh: zona aman di kerajaan, dinding di kripta
+  terhalang(x, y, radius) {
+    if (this.peta === 'dungeon') return this.menabrak(x, y - 12)
+    return this.peta === 'server' && this.diZonaAman(x, y, radius)
+  }
+
+  // ---------- Wilayah timur dan Gerbang Kripta ----------
+  tambahKripta(k) {
+    this.add.image(k.x, k.y, 'kripta').setOrigin(0.5, 1).setDepth(k.y)
+    this.tambahRintangan(k.x, k.y - 14, 84, 28)
+    this.labelStatis(k.x, k.y - 98, 'Gerbang Kripta')
+    this.interaktif.push({ jenis: 'dungeon', x: k.x, y: k.y + 18, radius: 64, label: 'Masuk Kripta (sendirian)' })
+    const cahaya = this.add
+      .image(k.x, k.y - 34, 'cahaya')
+      .setTint(0xa060ff)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH_UI - 450)
+      .setDisplaySize(120, 120)
+    this.tweens.add({ targets: cahaya, alpha: { from: 0.35, to: 0.75 }, duration: 1400, yoyo: true, repeat: -1 })
+    this.tambahObor({ x: k.x - 60, y: k.y + 4 })
+    this.tambahObor({ x: k.x + 60, y: k.y + 4 })
+    this.tambahDekorasiTimur()
+  }
+
+  tambahDekorasiTimur() {
+    let s = 4242
+    const rnd = () => {
+      s = (s * 1664525 + 1013904223) >>> 0
+      return s / 4294967296
+    }
+    const dipakai = []
+    const bebas = (x, y) =>
+      !(x > 1850 && x < 2130 && y > 430 && y < 690) &&
+      !(y > 550 && y < 650) &&
+      dipakai.every(([ux, uy]) => Math.hypot(ux - x, uy - y) > 56)
+    let n = 0
+    for (let i = 0; i < 600 && n < 46; i += 1) {
+      const x = 1630 + rnd() * 540
+      const y = 40 + rnd() * 1120
+      if (!bebas(x, y)) continue
+      dipakai.push([x, y])
+      n += 1
+      const r = rnd()
+      if (r < 0.4) {
+        this.add.image(x, y, 'pohon').setOrigin(0.5, 1).setDepth(y).setTint(0x7d7566)
+        this.tambahRintangan(x, y - 8, 20, 14)
+      } else if (r < 0.75) {
+        this.add.image(x, y, 'batu').setOrigin(0.5, 1).setDepth(y)
+        this.tambahRintangan(x, y - 5, 24, 10)
+      } else {
+        this.add.image(x, y, 'nisan').setOrigin(0.5, 1).setDepth(y)
+      }
+    }
+  }
+
+  // ---------- Kripta ----------
+  tambahDungeon() {
+    for (const o of DUNGEON.obor) this.tambahObor(o)
+    const k = DUNGEON.keluar
+    this.portal = this.add.sprite(k.x, k.y, 'portal_0').setOrigin(0.5, 1).setDepth(k.y)
+    this.tambahRintangan(k.x, k.y - 6, 30, 12)
+    this.tambahLampu(k.x, k.y - 26, 60, 0.9, true)
+    this.interaktif.push({ jenis: 'keluar_dungeon', x: k.x, y: k.y + 14, radius: 60, label: 'Pintu keluar kripta' })
+    this.time.addEvent({
+      delay: 350,
+      loop: true,
+      callback: () => this.portal?.setTexture(`portal_${Math.floor(this.time.now / 350) % 2}`),
+    })
+
+    const a = DUNGEON.pulih
+    this.add.image(a.x, a.y, 'mataair').setOrigin(0.5, 1).setDepth(a.y)
+    this.tambahRintangan(a.x, a.y - 8, 34, 16)
+    this.tambahLampu(a.x, a.y - 18, 56, 0.8, false)
+    this.interaktif.push({ jenis: 'mata_air', x: a.x, y: a.y + 14, radius: 60, label: 'Mata air penyembuh' })
+
+    for (const pt of DUNGEON.peti) {
+      const sprite = this.add.image(pt.x, pt.y, 'peti_0').setOrigin(0.5, 1).setDepth(pt.y)
+      this.tambahRintangan(pt.x, pt.y - 6, 26, 12)
+      const inter = { jenis: 'peti', idx: pt.idx, x: pt.x, y: pt.y + 10, radius: 52, label: 'Buka peti' }
+      this.interaktif.push(inter)
+      this.petiObj.set(pt.idx, { sprite, inter, boss: pt.boss === true })
+    }
+  }
+
+  perbaruiDungeon() {
+    if (this.peta !== 'dungeon') return
+    const d = this.registry.get('dunia')
+    for (const [idx, o] of this.petiObj) {
+      const buka = Boolean(d?.peti?.find((p) => p.idx === idx)?.dibuka)
+      o.sprite.setTexture(buka ? 'peti_1' : 'peti_0')
+      o.inter.label = buka
+        ? 'Peti sudah dibuka'
+        : o.boss && !d?.boss_kalah
+          ? 'Peti terkunci (kalahkan Lich Agung)'
+          : 'Buka peti'
+    }
+  }
+
   // ---------- Status dari React ----------
   terapkanStatus() {
     const st = this.registry.get('status')
@@ -784,6 +904,7 @@ export default class DuniaScene extends Phaser.Scene {
     if (this.peta !== 'pribadi') return
     this.gantiBangunan(Boolean(this.menyalaSaatIni))
     this.perbaruiPetak()
+    this.perbaruiDungeon()
   }
 
   perbaruiPetak() {
@@ -845,7 +966,7 @@ export default class DuniaScene extends Phaser.Scene {
 
   terapkanDunia() {
     const d = this.registry.get('dunia')
-    if (!d || this.peta !== 'server') return
+    if (!d || (this.peta !== 'server' && this.peta !== 'dungeon')) return
     const ada = new Set()
     for (const s of d.spawn) {
       ada.add(s.id)
@@ -876,7 +997,8 @@ export default class DuniaScene extends Phaser.Scene {
   }
 
   musuhMenyerang(m) {
-    m.bolehSerang = this.time.now + m.info.jeda
+    const amuk = m.data.musuh_id === 'lich_agung' && m.data.hp <= m.data.hp_maks / 2 ? 0.7 : 1
+    m.bolehSerang = this.time.now + m.info.jeda * amuk
     if (this.pemainAman()) return
     if (m.data.jenis === 'bos') {
       // Gelombang area: pemain bisa menghindar kalau menjauh sebelum gelombang selesai
@@ -909,10 +1031,12 @@ export default class DuniaScene extends Phaser.Scene {
       }
 
       const waktuPatroli = d.keadaan === 'mayat' ? Date.parse(d.mati_pada) : sekarang
-      const patrol =
-        d.jenis === 'bos'
-          ? { x: DOMAIN_BOS.x, y: DOMAIN_BOS.y, gerak: false, dx: 0 }
-          : posisiPatroli(d.rute, d.fase, waktuPatroli, info.kecepatan)
+        const patrol =
+        d.x !== undefined
+          ? { x: d.x, y: d.y, gerak: false, dx: 0 }
+          : d.jenis === 'bos'
+            ? { x: DOMAIN_BOS.x, y: DOMAIN_BOS.y, gerak: false, dx: 0 }
+            : posisiPatroli(d.rute, d.fase, waktuPatroli, info.kecepatan)
 
       if (d.keadaan === 'mayat') {
         if (m.keadaan !== 'mayat') {
@@ -978,7 +1102,7 @@ export default class DuniaScene extends Phaser.Scene {
             const k = (info.kejar * dt) / jarakPemain
             const nx = m.x + arahX * k
             const ny = m.y + (this.pemain.y + 8 - m.y) * k
-            if (this.diZonaAman(nx, ny, info.radius * 0.4)) {
+            if (this.terhalang(nx, ny, info.radius * 0.4)) {
               // Musuh tidak boleh masuk kota: berhenti di tepi lalu kembali
               m.aggro = false
               m.kembali = true
@@ -1002,7 +1126,7 @@ export default class DuniaScene extends Phaser.Scene {
             arahX = patrol.x - m.x
             const nx = m.x + arahX * k
             const ny = m.y + (patrol.y - m.y) * k
-            if (this.diZonaAman(nx, ny, info.radius * 0.4)) {
+            if (this.terhalang(nx, ny, info.radius * 0.4)) {
               m.kembali = false
               m.x = patrol.x
               m.y = patrol.y

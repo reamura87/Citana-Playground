@@ -1,3 +1,4 @@
+import { DUNGEON } from './dungeon'
 export const DOMAIN_BOS = { x: 1360, y: 340 }
 
 export const POSISI_PETAK = Array.from({ length: 12 }, (_, i) => ({
@@ -15,6 +16,9 @@ const RUTE = [
   [[540, 280], [640, 280], [640, 500], [540, 500]],
   [[620, 400], [980, 400], [980, 620], [620, 620]],
   [[1080, 470], [1300, 470], [1300, 640], [1080, 640]],
+  [[1680, 200], [2060, 200], [2060, 380], [1680, 380]],
+  [[1680, 740], [2080, 740], [2080, 1000], [1680, 1000]],
+  [[1640, 480], [1800, 480], [1800, 700], [1640, 700]],
 ]
 
 const PAUSE_DETIK = 4
@@ -59,7 +63,8 @@ export function posisiPatroli(rute, fase, waktuMs, kecepatan) {
 export const PETA = {
   server: {
     nama: 'Kerajaan (dunia bersama)',
-    ukuran: { lebar: 1600, tinggi: 1200 },
+    ukuran: { lebar: 2200, tinggi: 1200 },
+    kripta: { x: 1990, y: 560 },
     mulai: { x: 800, y: 960 },
     gerbang: { x: 470, y: 1000, ke: 'pribadi', label: 'Ke rumahku' },
     toko: { x: 740, y: 880 },
@@ -67,6 +72,7 @@ export const PETA = {
     sumur: { x: 800, y: 1010 },
     kastil: { x: 800, y: 300 },
     gua: { x: 1360, y: 300 },
+    
     pondok: [
       { x: 560, y: 900, v: 0 },
       { x: 1040, y: 910, v: 1 },
@@ -82,6 +88,7 @@ export const PETA = {
       { x: 1280, y: 680, teks: 'Tegal Badeng' },
       { x: 1360, y: 90, teks: 'Pengambengan' },
       { x: 310, y: 48, teks: 'Tambang Batu' },
+      { x: 1900, y: 60, teks: 'Dataran Abu' },
     ],
     hutan: [80, 280, 460, 720],
     padang: [1060, 640, 440, 440],
@@ -98,8 +105,12 @@ export const PETA = {
       [430, 960, 120, 80],
       [100, 990, 340, 220],
       [60, 60, 520, 210],
+      [1600, 0, 600, 1200],
     ],
   },
+
+  dungeon: { ukuran: DUNGEON.ukuran, mulai: DUNGEON.mulai, obor: DUNGEON.obor },
+
   pribadi: {
     nama: 'Rumah pribadi',
     ukuran: { lebar: 1280, tinggi: 960 },
@@ -150,6 +161,7 @@ export function sebarDekorasi(seed, jumlah, larangan, zona, jarakMin = 70) {
 
 // Tanah setiap peta (dibuat sekali lalu dipakai ulang sebagai tekstur)
 export function gambarTanah(peta) {
+  if (peta === 'dungeon') return gambarTanahDungeon()
   const { lebar, tinggi } = PETA[peta].ukuran
   const kanvas = document.createElement('canvas')
   kanvas.width = lebar
@@ -267,8 +279,28 @@ export function gambarTanah(peta) {
       ctx.stroke()
     }
 
+        // Wilayah timur: Dataran Abu
+    kotak('#6f6a5e', 1600, 0, 600, 1200)
+    for (let i = 0; i < 2200; i += 1) {
+      kotak(pilih(['#7a7468', '#5f5a50', '#857f72']), 1600 + rnd() * 592, rnd() * 1192, 6, 3)
+    }
+    for (let i = 0; i < 260; i += 1) kotak('#4a463e', 1600 + rnd() * 596, rnd() * 1196, 2, 2)
+    for (let i = 0; i < 400; i += 1) kotak(pilih(['#6f6a5e', '#5a9e4b']), 1560 + rnd() * 70, rnd() * 1190, 8, 4)
+    ctx.strokeStyle = 'rgba(20,15,10,0.45)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < 30; i += 1) {
+      const x = 1620 + rnd() * 560
+      const y = 20 + rnd() * 1160
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + (rnd() - 0.5) * 70, y + (rnd() - 0.5) * 50)
+      ctx.stroke()
+    }
+    kerikil(1880, 470, 220, 200) // pelataran Gerbang Kripta
+
     jalur(800, 300, 800, 840, 70)
-    jalur(0, 600, 1600, 600, 60)
+    jalur(0, 600, 1990, 600, 60)
+    jalur(1990, 600, 1990, 560, 50)
     jalur(830, 600, 1000, 520, 50)
     jalur(1000, 520, 1250, 420, 50)
     jalur(1250, 420, 1340, 350, 50)
@@ -316,6 +348,79 @@ export function gambarTanah(peta) {
       kotak('rgba(255,255,255,0.45)', a.cx + Math.cos(t) * a.rx * r * 0.9, a.cy + Math.sin(t) * a.ry * r * 0.9, 6, 1)
     }
   }
+  return kanvas
+}
+
+function gambarTanahDungeon() {
+  const { lebar, tinggi } = DUNGEON.ukuran
+  const kanvas = document.createElement('canvas')
+  kanvas.width = lebar
+  kanvas.height = tinggi
+  const ctx = kanvas.getContext('2d')
+  const rnd = acak(77)
+  const kotak = (warna, x, y, w, h) => {
+    ctx.fillStyle = warna
+    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+  }
+
+  kotak('#0b0a12', 0, 0, lebar, tinggi)
+  for (let i = 0; i < 1800; i += 1) {
+    kotak(rnd() > 0.5 ? '#141220' : '#0f0d18', rnd() * lebar, rnd() * tinggi, 12, 7)
+  }
+  // Wajah dinding di tepi atas tiap ruangan (digambar dulu supaya lantai menimpanya di sambungan)
+  for (const [x, y, w] of DUNGEON.lantai) {
+    kotak('#2a2538', x - 4, y - 18, w + 8, 18)
+    for (let bx = x - 4; bx < x + w + 4; bx += 16) kotak('#1b1726', bx, y - 18, 1, 18)
+    kotak('#1b1726', x - 4, y - 9, w + 8, 1)
+    kotak('#3a3450', x - 4, y - 18, w + 8, 2)
+  }
+  // Lantai batu, retakan, dan tulang
+  for (const [x, y, w, h] of DUNGEON.lantai) {
+    kotak('#2f2c3d', x, y, w, h)
+    for (let yy = y, b = 0; yy < y + h; yy += 24, b += 1) {
+      for (let xx = x - (b % 2) * 12; xx < x + w; xx += 24) {
+        const xa = Math.max(xx, x)
+        const xb = Math.min(xx + 24, x + w)
+        kotak(rnd() > 0.5 ? '#403d50' : '#363344', xa + 1, yy + 1, xb - xa - 2, Math.min(22, y + h - yy - 1))
+        kotak('rgba(255,255,255,0.05)', xa + 1, yy + 1, xb - xa - 2, 1)
+      }
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < (w * h) / 6000; i += 1) {
+      const cx = x + rnd() * w
+      const cy = y + rnd() * h
+      ctx.beginPath()
+      ctx.moveTo(cx, cy)
+      ctx.lineTo(cx + (rnd() - 0.5) * 30, cy + (rnd() - 0.5) * 20)
+      ctx.stroke()
+    }
+    for (let i = 0; i < (w * h) / 9000; i += 1) {
+      kotak('#cfc7b0', x + rnd() * w, y + rnd() * h, 5, 2)
+      kotak('#cfc7b0', x + rnd() * w, y + rnd() * h, 2, 4)
+    }
+  }
+  // Lingkaran sihir di ruang bos dan di pintu keluar
+  const lingkar = (cx, cy, r, warna) => {
+    ctx.strokeStyle = warna
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(cx, cy, r - 12, 0, Math.PI * 2)
+    ctx.stroke()
+    for (let i = 0; i < 5; i += 1) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2
+      const b = ((i + 2) / 5) * Math.PI * 2 - Math.PI / 2
+      ctx.beginPath()
+      ctx.moveTo(cx + Math.cos(a) * (r - 12), cy + Math.sin(a) * (r - 12))
+      ctx.lineTo(cx + Math.cos(b) * (r - 12), cy + Math.sin(b) * (r - 12))
+      ctx.stroke()
+    }
+  }
+  lingkar(250, 150, 92, 'rgba(170,90,255,0.55)')
+  lingkar(DUNGEON.keluar.x, DUNGEON.keluar.y - 4, 34, 'rgba(110,200,255,0.5)')
   return kanvas
 }
 

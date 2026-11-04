@@ -108,6 +108,7 @@ export const LAYAR = {
       },
     ]
     if (ui.registry.get('admin')) baris.push({ teks: 'Debug (admin)', aksi: () => ui.buka('debug') })
+    if (ui.peta === 'dungeon') baris.push({ teks: 'Keluar dari kripta', aksi: () => ui.buka('keluarDungeon') })
     baris.push({ teks: 'Keluar ke Beranda', aksi: () => ui.api().keluar() })
     baris.push({ teks: 'Tutup menu', aksi: () => ui.tutupSemua() })
     return { kecil: true, lebar: 330, judul: 'Menu', baris, kaki: 'A: pilih · B: tutup' }
@@ -548,4 +549,62 @@ export const LAYAR = {
       kaki: 'Kiri/kanan: ubah · A: pilih',
     }
   },
+
+    dungeon(ui) {
+    const lv = ui.status().pemain.level
+    return {
+      judul: 'Kripta Lich Agung',
+      paragraf: [
+        'Reruntuhan kuno penyimpan harta langka, dijaga Lich Agung dengan kekuatan setara naga.',
+        'Kripta hanya bisa dimasuki sendirian. Tiap masuk membuat kripta baru, maksimal 3 kali sehari.',
+        'Kalau kamu gugur, perjalanan gagal. Ada satu mata air penyembuh dekat ruang bos. Ambil semua peti sebelum keluar.',
+        `Disarankan level 8 ke atas (kamu level ${lv}).`,
+      ],
+      baris: [
+        {
+          teks: 'Masuk kripta',
+          aktif: lv >= 8,
+          alasan: 'Butuh level 8.',
+          aksi: async () => {
+            const ok = await ui.api().dungeonMasuk()
+            if (ok) ui.tutupSemua()
+          },
+        },
+        { teks: 'Batal', aksi: () => ui.kembali() },
+      ],
+    }
+  },
+
+  keluarDungeon(ui) {
+    return {
+      judul: 'Keluar dari kripta?',
+      paragraf: ['Perjalananmu di kripta berakhir dan tidak bisa dilanjutkan. Pastikan semua peti sudah diambil.'],
+      baris: [
+        {
+          teks: 'Ya, keluar',
+          aksi: async () => {
+            const ok = await ui.api().dungeonKeluar()
+            if (ok) ui.tutupSemua()
+          },
+        },
+        { teks: 'Batal', aksi: () => ui.kembali() },
+      ],
+    }
+  },
+
+  hadiah(ui, ent) {
+    const { judul, gold, loot } = ent.param
+    const baris = []
+    if (gold) baris.push({ teks: 'Gold', kanan: `+${rupiah(gold)}`, warnaKanan: WARNA.emas })
+    for (const l of loot ?? []) {
+      baris.push({
+        teks: `${l.item} x${l.jumlah}`,
+        kanan: l.ganti_gold ? `duplikat +${l.ganti_gold} g` : l.langka ? 'LANGKA!' : '',
+        warnaKanan: l.langka ? WARNA.emas : WARNA.hijau,
+      })
+    }
+    baris.push({ teks: 'Tutup', aksi: () => ui.kembali() })
+    return { kecil: true, lebar: 360, judul, baris }
+  },
+
 }

@@ -58,6 +58,7 @@ export default class UIScene extends Phaser.Scene {
   pasangEvent() {
     const ev = this.game.events
     const daftar = [
+      ['hadiah', (h) => this.buka('hadiah', h)],
       ['toast', (t) => this.toast(t)],
       ['peta', (n) => { this.peta = n }],
       ['zona-aman', (v) => { this.aman = v }],
@@ -184,7 +185,7 @@ export default class UIScene extends Phaser.Scene {
 
     const tg = this.target && performance.now() < this.target.sampai ? this.target : null
     this.barMusuh(this.hTarget, tg ? { nama: tg.nama, hp: tg.hp, maks: tg.hp_maks } : null)
-    const bos = this.peta === 'server' ? this.dunia()?.spawn.find((s) => s.jenis === 'bos') : null
+    const bos = this.peta === 'server' || this.peta === 'dungeon' ? this.dunia()?.spawn.find((s) => s.jenis === 'bos') : null
     this.barMusuh(
       this.hBos,
       bos ? { nama: `${bos.nama}${bos.keadaan === 'hidup' ? '' : ' (kalah)'}`, hp: bos.hp, maks: bos.hp_maks } : null,
@@ -381,6 +382,10 @@ export default class UIScene extends Phaser.Scene {
       case 'papan': this.buka('papan'); break
       case 'npc': this.bukaDialog(o.npc); break
       case 'petak': this.aksiPetak(o.indeks); break
+      case 'dungeon': this.buka('dungeon'); break
+      case 'keluar_dungeon': this.buka('keluarDungeon'); break
+      case 'mata_air': this.api().dungeonPulih(); break
+      case 'peti': this.bukaPeti(o.idx); break
       default: break // titik foraging ditangani halaman
     }
   }
@@ -470,6 +475,19 @@ export default class UIScene extends Phaser.Scene {
     }
     if (this.hidup && this.atas() === ent) this.render()
   }
+
+    async bukaPeti(idx) {
+    const p = this.dunia()?.peti?.find((x) => x.idx === idx)
+    if (p?.dibuka) {
+      this.toast('Peti ini sudah dibuka.')
+      return
+    }
+    this.sibukLokal = true
+    const r = await this.api().dungeonPeti(idx)
+    this.sibukLokal = false
+    if (r && this.hidup) this.buka('hadiah', { judul: 'Isi peti', gold: r.gold, loot: r.loot })
+  }
+
 
   pratinjauKarakter(kelas, kustom) {
     const rupa = rupaDariKustom(kustom)
