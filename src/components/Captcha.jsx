@@ -1,72 +1,37 @@
-
 import { useEffect, useRef } from 'react'
 
-const KUNCI = import.meta.env.VITE_TURNSTILE_SITE_KEY
+const KUNCI = import.meta.env.0x4AAAAAAF0v57rbAb6CJWV2
 
 export default function Captcha({ onToken }) {
   const ref = useRef(null)
-  const callbackRef = useRef(onToken)
 
   useEffect(() => {
-    callbackRef.current = onToken
-  }, [onToken])
-
-  useEffect(() => {
-    if (!KUNCI) {
-      console.error('Turnstile Site Key belum diatur.')
-      return
-    }
-
+    if (!KUNCI) return
     let id = null
     let batal = false
-
     function gambar() {
       if (batal || !ref.current || !window.turnstile) return
-
       id = window.turnstile.render(ref.current, {
         sitekey: KUNCI,
-
-        callback: (token) => {
-          callbackRef.current(token)
-        },
-
-        'expired-callback': () => {
-          callbackRef.current(null)
-        },
-
-        'error-callback': () => {
-          callbackRef.current(null)
-        }
+        callback: (token) => onToken(token),
+        'expired-callback': () => onToken(null),
+        'error-callback': () => onToken(null),
       })
     }
-
     if (window.turnstile) {
       gambar()
     } else {
-      let script = document.querySelector(
-        'script[src*="challenges.cloudflare.com/turnstile"]'
-      )
-
-      if (!script) {
-        script = document.createElement('script')
-        script.src =
-          'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-        script.async = true
-        script.defer = true
-        document.head.appendChild(script)
-      }
-
-      script.addEventListener('load', gambar)
+      const s = document.createElement('script')
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      s.async = true
+      s.onload = gambar
+      document.head.appendChild(s)
     }
-
     return () => {
       batal = true
-
-      if (id !== null && window.turnstile) {
-        window.turnstile.remove(id)
-      }
+      if (id !== null && window.turnstile) window.turnstile.remove(id)
     }
-  }, [])
+  }, [onToken])
 
   return <div ref={ref} />
 }
