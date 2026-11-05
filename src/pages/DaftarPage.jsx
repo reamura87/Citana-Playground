@@ -32,7 +32,7 @@ export default function DaftarPage() {
     setMengirim(true)
     setPesan('')
     const { data, error } = await supabase.auth.signUp({ email, password: sandi, options: { captchaToken: token /* , emailRedirectTo: ... */ } })
-    supabase.auth.signInWithPassword({ email, password: sandi, options: { captchaToken: token } })
+  
     setMengirim(false)
     if (error) {
       setPesan('Pendaftaran gagal. Username atau email mungkin sudah dipakai.')
