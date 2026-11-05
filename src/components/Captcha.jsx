@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-const KUNCI = import.meta.env.0x4AAAAAAF0v57rbAb6CJWV2
+const KUNCI = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
 export default function Captcha({ onToken }) {
   const ref = useRef(null)
