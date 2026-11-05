@@ -31,7 +31,7 @@ export default function DaftarPage() {
     }
     setMengirim(true)
     setPesan('')
-    const { data, error } = await supabase.auth.signUp({ email, password: sandi, options: { captchaToken: token /* , emailRedirectTo: ... */ } })
+    const { data, error } = await supabase.auth.signUp({ email, password: sandi, options: { captchaToken: token /* , emailRedirectTo: ... */ , data: { username: nama } } })
   
     setMengirim(false)
     if (error) {
