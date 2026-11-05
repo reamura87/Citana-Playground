@@ -8,5 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
+        permissions: {}
           curl -fsS --max-time 30 "${{ secrets.SUPABASE_URL }}/rest/v1/satua?select=id&limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" > /dev/null
