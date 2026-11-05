@@ -49,7 +49,7 @@ export default function DaftarPage() {
     <>
       <h1>Daftar</h1>
       <p>
-        pakai password yang beda dari password emailmu. kalau ndak entar dicolong bagas
+        wait, website masih down hehe
       </p>
       <form className="form" onSubmit={daftar}>
         <label>
