@@ -14,12 +14,11 @@ export default function DaftarPage() {
   const navigate = useNavigate()
 
   async function daftar(e) {
-
+    e.preventDefault()
     if (!setuju) {
       setPesan('Kamu perlu menyetujui Syarat dan Kebijakan Privasi.')
       return
     }
-    e.preventDefault()
     const nama = username.trim().toLowerCase()
     if (!/^[a-z0-9_]{3,20}$/.test(nama)) {
       setPesan('Username 3–20 karakter: huruf, angka, atau garis bawah.')
@@ -31,26 +30,33 @@ export default function DaftarPage() {
     }
     setMengirim(true)
     setPesan('')
-    const { data, error } = await supabase.auth.signUp({ email, password: sandi, options: { captchaToken: token /* , emailRedirectTo: ... */ , data: { username: nama } } })
-  
-    setMengirim(false)
-    if (error) {
-      setPesan('Pendaftaran gagal. Username atau email mungkin sudah dipakai.')
-      return
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: sandi,
+        options: { captchaToken: token, data: { username: nama } },
+      })
+
+      if (error) {
+        setPesan(`Pendaftaran gagal: ${error.message}`)
+        return
+      }
+      if (data.session) {
+        navigate('/forum')
+        return
+      }
+      setPesan('Berhasil. Periksa emailmu untuk konfirmasi, lalu masuk.')
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      setPesan(`Tidak dapat menghubungi server pendaftaran: ${detail}`)
+    } finally {
+      setMengirim(false)
     }
-    if (data.session) {
-      navigate('/forum')
-      return
-    }
-    setPesan('Berhasil. Periksa emailmu untuk konfirmasi, lalu masuk.')
   }
 
   return (
     <>
       <h1>Daftar</h1>
-      <p>
-        wait, website masih down hehe
-      </p>
       <form className="form" onSubmit={daftar}>
         <label>
           Username
@@ -73,11 +79,12 @@ export default function DaftarPage() {
 
 
         <div className="aksi">
-          <Captcha onToken={setToken} />
-          <button type="submit" className="tombol utama" disabled={!token}>
+
+          <button type="submit" className="tombol utama" disabled={!token || mengirim}>
             {mengirim ? 'Mendaftar…' : 'Daftar'}
           </button>
           {pesan && <span className="redup">{pesan}</span>}
+          <Captcha onToken={setToken} />
         </div>
       </form>
       <p className="redup">Sudah punya akun? <Link to="/masuk">Masuk</Link></p>

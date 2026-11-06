@@ -38,10 +38,10 @@ async function masuk(e) {
           <input type="password" value={sandi} onChange={(e) => setSandi(e.target.value)} required />
         </label>
         <div className="aksi">
-          <Captcha onToken={setToken} />
           <button type="submit" className="tombol utama" disabled={!token}>
             Masuk
           </button>
+          <Captcha onToken={setToken} />
           {pesan && <span className="redup">{pesan}</span>}
         <p className="redup">Belum punya akun? <Link to="/daftar">Daftar</Link></p>
         </div>
