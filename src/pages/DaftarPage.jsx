@@ -57,6 +57,9 @@ export default function DaftarPage() {
   return (
     <>
       <h1>Daftar</h1>
+      <p>
+        daftar aja ndak usah banyak tanya.
+      </p>
       <form className="form" onSubmit={daftar}>
         <label>
           Username
