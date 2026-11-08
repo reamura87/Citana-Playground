@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { DIALOG } from '../dialog'
 import { rupaDariKustom } from '../gambar'
-import { WAJAH, gambarKelas, gambarWajah } from '../seni'
+import { WAJAH, gambarIkon, gambarKelas, gambarWajah } from '../seni'
 import { suara } from '../suara'
 import { LAYAR } from './layar'
 import { L, T, WARNA, formatSisa, gambarJendela, gaya, rupiah } from './gaya'
@@ -503,10 +503,18 @@ export default class UIScene extends Phaser.Scene {
     })
   }
 
+    // Kunci tekstur ikon sebuah item (dibuat sekali saja)
+  ikon(item) {
+    if (!item) return null
+    const kunci = `ikon_${item.id}`
+    if (!this.textures.exists(kunci)) this.textures.addCanvas(kunci, gambarIkon(item))
+    return kunci
+  }
+
   gambarLayar(d, ent) {
     const c = this.add.container(0, 0).setDepth(100)
     const kecil = Boolean(d.kecil)
-    const tinggiBaris = (b) => (b.pemisah ? 22 : 30 + (b.sub ? (b.sub.length > 56 ? 26 : 13) : 0))
+    const tinggiBaris = (b) => (b.pemisah ? 22 : 30 + (b.sub ? (b.sub.length > (b.ikon ? 46 : 56) ? 26 : 13) : 0))
     const W = kecil ? (d.lebar ?? 300) : 456
     let H = 300
     if (kecil) {
@@ -627,7 +635,9 @@ export default class UIScene extends Phaser.Scene {
       c.add(this.add.rectangle(x + 2, y + 1, w - 4, h - 2, WARNA.sorot, 0.16).setOrigin(0))
       c.add(this.tulis(x + 6, y + 7, '>', 14, WARNA.emas))
     }
-    c.add(this.tulis(x + 22, y + 7, b.teks, 14, aktif ? WARNA.teks : WARNA.nonaktif))
+    const geser = b.ikon ? 30 : 0
+    if (b.ikon) c.add(this.add.image(x + 22, y + 3, b.ikon).setOrigin(0).setAlpha(aktif ? 1 : 0.55))
+    c.add(this.tulis(x + 22 + geser, y + 7, b.teks, 14, aktif ? WARNA.teks : WARNA.nonaktif))
     if (b.ubah) {
       const kn = this.tulis(x + w - 12, y + 7, '>', 15, WARNA.emas).setOrigin(1, 0).setInteractive({ useHandCursor: true })
       const kr = this.tulis(x + w - 156, y + 7, '<', 15, WARNA.emas).setInteractive({ useHandCursor: true })
@@ -649,7 +659,7 @@ export default class UIScene extends Phaser.Scene {
     } else if (b.kanan) {
       c.add(this.tulis(x + w - 8, y + 7, String(b.kanan), 13, b.warnaKanan ?? WARNA.emas).setOrigin(1, 0))
     }
-    if (b.sub) c.add(this.tulis(x + 22, y + 26, b.sub, 11, WARNA.redup, { wordWrap: { width: w - 34 } }))
+    if (b.sub) c.add(this.tulis(x + 22 + geser, y + 26, b.sub, 11, WARNA.redup, { wordWrap: { width: w - 34 - geser } }))
     const z = this.add
       .rectangle(x, y, b.ubah ? w - 190 : w, h, 0xffffff, 0.001)
       .setOrigin(0)

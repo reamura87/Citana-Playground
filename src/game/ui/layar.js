@@ -135,6 +135,7 @@ export const LAYAR = {
       const stat = item?.attack ? `+${item.attack} ATK` : item?.defense ? `+${item.defense} DEF` : ''
       return {
         teks: `${item?.nama ?? i.item_id} x${i.jumlah}`,
+        ikon: ui.ikon(item),
         kanan: dipakai ? 'Dipakai' : stat,
         warnaKanan: dipakai ? WARNA.hijau : WARNA.emas,
         aksi: () => menuItem(ui, st, item, i),
@@ -198,6 +199,7 @@ export const LAYAR = {
           const punya = milik(st, i.id) > 0
           return {
             teks: i.nama,
+            ikon: ui.ikon(i),
             kanan: dipakai ? 'Dipakai' : punya ? 'Dimiliki' : harga(i),
             warnaKanan: dipakai || punya ? WARNA.hijau : WARNA.emas,
             sub: i.attack ? `+${i.attack} ATK` : i.defense ? `+${i.defense} DEF` : '',
@@ -226,6 +228,7 @@ export const LAYAR = {
             }${a.syarat_jumlah > 0 ? ` · ${kata} ${Math.min(stat, a.syarat_jumlah)}/${a.syarat_jumlah}` : ''}`
         return {
           teks: item.nama,
+          ikon: ui.ikon(item),
           kanan: punya ? 'Dimiliki' : harga(item),
           warnaKanan: punya ? WARNA.hijau : WARNA.emas,
           sub: `${a.kecepatan_persen}% lebih cepat${membuka}${syarat}`,
@@ -245,6 +248,7 @@ export const LAYAR = {
     } else if (ent.tab === 3) {
       baris = dijual(['ramuan', 'bibit']).map((i) => ({
         teks: i.nama,
+        ikon: ui.ikon(i),
         kanan: harga(i),
         sub: i.pulih ? `+${i.pulih} HP` : i.kategori === 'bibit' ? 'Bibit untuk kebun rumah' : '',
         aksi: () =>
@@ -267,6 +271,7 @@ export const LAYAR = {
         .filter((i) => i.item && i.item.harga_jual !== null && !sedangDipakai(st, i.item))
         .map((i) => ({
           teks: `${i.item.nama} x${i.jumlah}`,
+          ikon: ui.ikon(i.item),
           kanan: `${rupiah(i.item.harga_jual)} g`,
           aksi: () =>
             ui.tanya({
@@ -329,6 +334,7 @@ export const LAYAR = {
         const bibit = milik(st, t.bibit_item)
         return {
           teks: t.nama,
+          ikon: ui.ikon(cari(kat, t.bibit_item)),
           kanan: `bibit ${bibit}`,
           sub: `Tumbuh ${durasi(t.durasi_detik)} · hasil ${t.hasil_jumlah}`,
           aktif: bibit > 0,
@@ -472,6 +478,7 @@ export const LAYAR = {
           const dipakai = sedangDipakai(st, i)
           return {
             teks: i.nama,
+            ikon: ui.ikon(i),
             kanan: dipakai ? 'Dipakai' : '',
             warnaKanan: WARNA.hijau,
             sub: `${i.attack ? `+${i.attack} ATK` : i.defense ? `+${i.defense} DEF` : 'dasar'}${i.kelas ? ` · ${i.kelas}` : ''}`,
@@ -611,6 +618,7 @@ export const LAYAR = {
     for (const l of loot ?? []) {
       baris.push({
         teks: `${l.item} x${l.jumlah}`,
+        ikon: ui.ikon(cari(ui.katalog(), l.item_id)),
         kanan: l.ganti_gold ? `duplikat +${l.ganti_gold} g` : l.langka ? 'LANGKA!' : '',
         warnaKanan: l.langka ? WARNA.emas : WARNA.hijau,
       })

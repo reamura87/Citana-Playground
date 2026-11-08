@@ -1321,3 +1321,11 @@ main.lebar .game-area { max-width: none; }
   .gb-rangka .gb-tombol { width: 160px; height: 136px; justify-self: center; align-self: end; }
   .gb-aksi { width: 76px; height: 76px; }
 }
+
+.ikon-item {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}

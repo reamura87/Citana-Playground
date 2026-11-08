@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ikonUrl } from '../game/seni'
 
 function warnaNama(id) {
   let h = 0
@@ -19,12 +20,14 @@ const STATUS_HADIAH = {
 function KartuHadiah({ m, h, saya, katalog, sekarang, onAksi }) {
   const dariSaya = m.penulis_id === saya
   const rincian = h ? `${h.jumlah}× ${namaItem(katalog, h.item_id)}` : m.isi
+  const item = h ? katalog?.item.find((i) => i.id === h.item_id) : null
   const habis = h?.status === 'menunggu' && Date.parse(h.kadaluarsa_pada) <= sekarang
   const status = habis ? 'kedaluwarsa' : (h?.status ?? 'menunggu')
 
   return (
     <div className="game-kartu-hadiah">
       <span>
+        {item && <img className="ikon-item" src={ikonUrl(item)} alt="" />}
         {dariSaya ? (
           <>Hadiah untuk <strong>{m.penerima_nama}</strong></>
         ) : (

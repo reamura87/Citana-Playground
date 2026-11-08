@@ -1170,3 +1170,375 @@ export function gambarGerbangKripta() {
   for (let i = 0; i < 4; i += 1) k('#8d9096', 20 + i * 14, 82 - i * 0, 14, 4)
   return perhalus(c.kanvas)
 }
+// ---------- Ikon item (24x24) ----------
+const NAMA_TIER_IKON = ['perunggu', 'perak', 'emas', 'berlian', 'obsidian', 'mitril']
+const LOGAM_TIER = ['#c47a3a', '#d6dbe3', '#f2c94c', '#6fe4f0', '#8a63d2', '#4fe0b8']
+// Warna [isi, garis] bingkai: biasa, tidak biasa, langka, epik, legendaris
+const SLOT = [
+  ['#262b45', '#5a6490'],
+  ['#1c3a27', '#4fa86a'],
+  ['#1c3258', '#4f86d8'],
+  ['#35205a', '#9a62e0'],
+  ['#54400f', '#f2c94c'],
+]
+
+const tierId = (id) => NAMA_TIER_IKON.findIndex((n) => id.endsWith(`_${n}`)) + 1
+const rgba = (hex, a) => {
+  const [r, g, b] = rgb(hex)
+  return `rgba(${r},${g},${b},${a})`
+}
+
+function nilaiLangka(item) {
+  const id = item.id
+  const khusus = {
+    ramuan_agung: 3, jantung_lich: 4, permata_kegelapan: 3, serpihan_kripta: 2, bunga_bulan: 2, akar_obat: 1,
+  }
+  if (khusus[id] !== undefined) return khusus[id]
+  const t = tierId(id)
+  if (id.startsWith('bijih_')) return [0, 0, 1, 2, 3, 3, 4][t] ?? 0
+  if (id.startsWith('beliung_') || id.startsWith('sabit_')) return [0, 1, 1, 2, 2, 3, 4][t] ?? 0
+  const a = item.attack ?? 0
+  const d = item.defense ?? 0
+  if (a >= 40 || d >= 22) return 4
+  if (a >= 30 || d >= 16) return 3
+  if (a >= 14 || d >= 8) return 2
+  if (a >= 3 || d >= 1) return 1
+  return 0
+}
+
+function slot(c, lk) {
+  const [isi, garisW] = SLOT[lk]
+  c.p(garisW, 0, 0, 24, 24)
+  c.p(isi, 1, 1, 22, 22)
+  c.p(gelap(isi, 0.35), 1, 14, 22, 9)
+  c.p(terang(isi, 0.12), 1, 1, 22, 2)
+  for (const [x, y] of [[0, 0], [23, 0], [0, 23], [23, 23]]) c.ctx.clearRect(x, y, 1, 1)
+}
+
+const PEDANG = {
+  pedang_latihan: { bilah: '#a67c52', sisi: '#c9a070', pelindung: '#6b4423', gagang: '#4a2f18' },
+  pedang_besi: { bilah: '#aab3bf', sisi: '#d3d9e2', pelindung: '#6b4423', gagang: '#4a3a2c' },
+  pedang_baja: { bilah: '#c5d0df', sisi: '#eef3fa', pelindung: '#8d9096', gagang: '#3b4150' },
+  pedang_ksatria: { bilah: '#dfe6f0', sisi: '#ffffff', pelindung: '#d4af37', gagang: '#8a1f1f' },
+  pedang_naga: { bilah: '#e0623a', sisi: '#ffb070', pelindung: '#d4af37', gagang: '#5a1a1a', api: true },
+  pedang_bayangan: { bilah: '#3a2a5c', sisi: '#a77af5', pelindung: '#2a1f3a', gagang: '#1b1426', cahaya: '#a77af5' },
+  pedang_lich: { bilah: '#5fe0b8', sisi: '#d8fff0', pelindung: '#d8d2bd', gagang: '#2a1f3a', cahaya: '#5fe0b8' },
+}
+
+function ikonPedang(c, id) {
+  const s = PEDANG[id] ?? PEDANG.pedang_besi
+  const { p, garis, elips } = c
+  if (s.cahaya) elips(rgba(s.cahaya, 0.3), 14, 10, 9, 9)
+  garis(s.bilah, 9, 15, 20, 4, 2)
+  garis(s.sisi, 10, 14, 20, 4, 1)
+  p(s.sisi, 21, 3)
+  if (s.api) {
+    p('#ffd36b', 17, 3)
+    p('#ff7a1f', 20, 2)
+    p('#ff7a1f', 14, 6)
+    p('#ffd36b', 21, 6)
+  }
+  garis(s.pelindung, 6, 14, 10, 18, 2)
+  garis(s.gagang, 5, 19, 8, 16, 2)
+  p(s.pelindung, 3, 20, 2, 2)
+}
+
+const TONGKAT = {
+  tongkat_latihan: { orb: null },
+  tongkat_perak: { orb: '#d6dbe3' },
+  tongkat_kristal: { orb: '#6fb6ff' },
+  tongkat_arkana: { orb: '#b070ff', cincin: true },
+  tongkat_bintang: { orb: '#ffe066', bintang: true },
+  tongkat_bayangan: { orb: '#7a4ac0', cahaya: '#a77af5' },
+  tongkat_lich: { orb: '#5fe0b8', cahaya: '#5fe0b8', mata: true },
+}
+
+function ikonTongkat(c, id) {
+  const s = TONGKAT[id] ?? TONGKAT.tongkat_latihan
+  const { p, garis, elips } = c
+  const kayu = '#8a5a2b'
+  garis(kayu, 5, 20, 15, 10, 2)
+  garis(terang(kayu, 0.3), 6, 19, 14, 11, 1)
+  if (!s.orb) {
+    elips('#a9763d', 17, 8, 3, 3)
+    p('#c9a070', 16, 7)
+    return
+  }
+  if (s.cahaya) elips(rgba(s.cahaya, 0.3), 17, 8, 7, 7)
+  elips(gelap(s.orb, 0.35), 17, 8, 5, 5)
+  elips(s.orb, 17, 8, 4, 4)
+  p('#ffffff', 15, 6, 2, 2)
+  if (s.cincin) {
+    for (const [x, y] of [[11, 8], [23, 8], [17, 2], [17, 14]]) p('#e8d0ff', x, y)
+  }
+  if (s.bintang) {
+    p('#fff2b0', 17, 1)
+    p('#fff2b0', 17, 15)
+    p('#fff2b0', 10, 8)
+    p('#fff2b0', 23, 8)
+  }
+  if (s.mata) {
+    p('#1a1030', 15, 8, 1, 2)
+    p('#1a1030', 18, 8, 1, 2)
+  }
+}
+
+const ARMOR = {
+  pakaian_desa: { jenis: 'kain', warna: '#c9b48a' },
+  baju_kulit: { jenis: 'kulit', warna: '#8a5a2b' },
+  baju_rantai: { jenis: 'rantai', warna: '#8d9aa8' },
+  zirah_baja: { jenis: 'pelat', warna: '#aab3bf' },
+  zirah_ksatria: { jenis: 'pelat', warna: '#d3d9e2', emas: true, merah: true },
+  zirah_bayangan: { jenis: 'pelat', warna: '#3a2a5c', cahaya: '#a77af5' },
+  zirah_lich: { jenis: 'pelat', warna: '#d8d2bd', cahaya: '#5fe0b8', duri: true },
+}
+
+function ikonArmor(c, id) {
+  const s = ARMOR[id] ?? ARMOR.baju_kulit
+  const { p, k } = c
+  const w = s.warna
+  if (s.duri) {
+    p(w, 3, 3)
+    p(w, 5, 2)
+    p(w, 20, 3)
+    p(w, 18, 2)
+  }
+  k(w, 2, 6, 6, 6)
+  k(w, 16, 6, 6, 6)
+  k(w, 6, 5, 12, 15)
+  p(gelap(w, 0.45), 10, 5, 4, 3)
+  if (s.jenis === 'kain') {
+    p(gelap(w, 0.2), 12, 8, 1, 11)
+    p('#6b4423', 6, 14, 12, 2)
+  } else if (s.jenis === 'kulit') {
+    p('#4a2f18', 8, 6, 2, 13)
+    p('#4a2f18', 14, 6, 2, 13)
+    p('#d4af37', 8, 12, 2, 1)
+    p('#d4af37', 14, 12, 2, 1)
+    p('#4a2f18', 6, 15, 12, 2)
+  } else if (s.jenis === 'rantai') {
+    for (let y = 7; y <= 18; y += 2) {
+      for (let x = 7; x <= 16; x += 2) p(gelap(w, 0.3), x + ((y / 2) % 2), y)
+    }
+    p('#4a3a2c', 6, 15, 12, 2)
+  } else {
+    p(gelap(w, 0.28), 6, 11, 12, 1)
+    p(gelap(w, 0.28), 12, 8, 1, 12)
+    p(terang(w, 0.5), 8, 8)
+    p(terang(w, 0.5), 15, 8)
+    p(terang(w, 0.5), 8, 14)
+    p(terang(w, 0.5), 15, 14)
+    p(gelap(w, 0.4), 6, 17, 12, 2)
+  }
+  if (s.emas) {
+    p('#d4af37', 6, 5, 12, 1)
+    p('#d4af37', 6, 19, 12, 1)
+    p('#d4af37', 2, 6, 6, 1)
+    p('#d4af37', 16, 6, 6, 1)
+  }
+  if (s.merah) {
+    p('#c0392b', 11, 9, 2, 6)
+    p('#c0392b', 9, 11, 6, 2)
+  }
+  if (s.cahaya) {
+    p(s.cahaya, 11, 8, 2, 8)
+    p(s.cahaya, 9, 11, 6, 2)
+  }
+}
+
+function ikonRamuan(c, id) {
+  const { p, k, elips } = c
+  const agung = id === 'ramuan_agung'
+  const cairan = agung ? '#b070ff' : '#e0453a'
+  const r = agung ? 7 : 6
+  k('#8a5a2b', 10, 2, 4, 3)
+  k('#cfe6f5', 10, 5, 4, 4)
+  elips('#cfe6f5', 12, 15, r, r)
+  for (let y = 12; y <= 15 + r; y += 1) {
+    for (let x = 12 - r; x <= 12 + r; x += 1) {
+      if (((x - 12) / (r - 1)) ** 2 + ((y - 15) / (r - 1)) ** 2 <= 1) p(cairan, x, y)
+    }
+  }
+  elips('rgba(255,255,255,0.55)', 9, 13, 1, 2)
+  if (agung) {
+    p('#f2c94c', 10, 9, 4, 1)
+    p('#fff2b0', 18, 7)
+    p('#fff2b0', 6, 20)
+    p('#fff2b0', 19, 17)
+  }
+}
+
+function ikonBibit(c, id) {
+  const { p, k, elips } = c
+  const label = id.includes('wortel') ? '#f08a24' : id.includes('tomat') ? '#d93025' : id.includes('labu') ? '#e0a020' : '#7fb34a'
+  elips('#b08a5a', 12, 15, 7, 6)
+  elips('#9a7548', 14, 17, 5, 4)
+  k('#6b4423', 8, 9, 8, 2)
+  p('#b08a5a', 8, 8, 2, 2)
+  p('#b08a5a', 14, 8, 2, 2)
+  p(label, 10, 14, 4, 3)
+  p('#3f8f3f', 12, 4, 1, 4)
+  p('#5db65d', 10, 4, 2, 2)
+  p('#5db65d', 13, 3, 2, 2)
+  p('#e8d9a8', 18, 19)
+  p('#e8d9a8', 19, 20)
+  p('#e8d9a8', 16, 20)
+}
+
+function ikonPanen(c, id) {
+  const { p, k, elips } = c
+  if (id.includes('wortel')) {
+    for (let y = 8; y <= 21; y += 1) {
+      const w = Math.max(1, Math.round((8 * (21 - y)) / 13))
+      p(y % 4 === 0 ? '#d9731a' : '#f08a24', 12 - Math.floor(w / 2), y, w, 1)
+    }
+    p('#3f8f3f', 11, 4, 2, 4)
+    p('#5db65d', 8, 5, 3, 2)
+    p('#5db65d', 13, 5, 3, 2)
+  } else if (id.includes('tomat')) {
+    elips('#a8261c', 12, 14, 8, 7)
+    elips('#d93025', 11, 13, 7, 6)
+    p('#ff8a7a', 8, 10, 2, 2)
+    p('#3f8f3f', 9, 6, 6, 2)
+    p('#3f8f3f', 11, 4, 2, 3)
+  } else if (id.includes('labu')) {
+    elips('#c27010', 12, 14, 9, 7)
+    elips('#e0912a', 11, 13, 8, 6)
+    for (const x of [8, 12, 16]) p('#b5600c', x, 8, 1, 12)
+    k('#6b8a2a', 11, 4, 3, 4)
+  } else {
+    k('#c0a060', 6, 8, 12, 12)
+    p('#8a6f4a', 6, 13, 12, 2)
+  }
+}
+
+function ikonTumbuhan(c, id) {
+  const { p, k, elips } = c
+  if (id.includes('jamur')) {
+    k('#f1e6cf', 10, 12, 4, 8)
+    elips('#c9684f', 12, 11, 8, 5)
+    p('#ffffff', 8, 9, 2, 2)
+    p('#ffffff', 13, 8, 2, 2)
+    p('#ffffff', 16, 11, 2, 2)
+  } else if (id.includes('beri')) {
+    elips('#3f8f3f', 12, 14, 8, 6)
+    elips('#52a64f', 10, 12, 5, 4)
+    for (const [x, y] of [[8, 11], [13, 10], [16, 14], [10, 16], [14, 17]]) {
+      elips('#7a3fa8', x, y, 2, 2)
+      p('#c58aff', x - 1, y - 1)
+    }
+  } else if (id.includes('akar')) {
+    p('#3f9a3f', 11, 3, 2, 9)
+    p('#5db65d', 7, 5, 4, 2)
+    p('#5db65d', 13, 6, 4, 2)
+    p('#5db65d', 8, 9, 3, 2)
+    for (let y = 12; y <= 21; y += 1) p('#d9c08a', 12 - Math.round((21 - y) / 5), y, 1 + Math.round((21 - y) / 3), 1)
+  } else {
+    p('#3f8f3f', 11, 12, 2, 9)
+    p('#3f8f3f', 8, 16, 3, 2)
+    for (const [x, y] of [[12, 6], [8, 9], [16, 9], [10, 13], [14, 13]]) elips('#cfe8ff', x, y, 3, 3)
+    elips('#ffe066', 12, 10, 2, 2)
+    p('#ffffff', 11, 5)
+  }
+}
+
+function ikonBijih(c, id) {
+  const { p, elips } = c
+  const w = LOGAM_TIER[(tierId(id) || 1) - 1]
+  elips('#6f7278', 12, 15, 8, 6)
+  elips('#8d9096', 11, 13, 6, 4)
+  p('#a9acb2', 8, 11, 5, 1)
+  for (const [x, y] of [[7, 14], [12, 12], [15, 16], [10, 17], [17, 13]]) p(w, x, y, 2, 2)
+  p('#ffffff', 8, 14)
+  p('#ffffff', 13, 12)
+}
+
+function ikonBeliung(c, id) {
+  const { p, garis } = c
+  const logam = LOGAM_TIER[(tierId(id) || 1) - 1]
+  garis('#6b4423', 14, 7, 6, 20, 2)
+  garis(gelap(logam, 0.3), 6, 10, 12, 5, 2)
+  garis(logam, 6, 9, 12, 4, 2)
+  garis(logam, 12, 4, 20, 9, 2)
+  garis(terang(logam, 0.45), 7, 8, 12, 3, 1)
+  p(terang(logam, 0.6), 19, 8)
+}
+
+function ikonSabit(c, id) {
+  const { p, garis } = c
+  const logam = LOGAM_TIER[(tierId(id) || 1) - 1]
+  garis('#6b4423', 5, 20, 12, 12, 2)
+  garis(logam, 12, 12, 15, 7, 2)
+  garis(logam, 15, 7, 20, 5, 2)
+  garis(terang(logam, 0.45), 14, 7, 20, 5, 1)
+  garis(gelap(logam, 0.25), 20, 5, 21, 9, 2)
+  p(terang(logam, 0.6), 19, 5)
+}
+
+function ikonBahan(c, id) {
+  const { p, elips } = c
+  if (id === 'serpihan_kripta') {
+    for (let i = 0; i <= 16; i += 1) {
+      const w = Math.round(6 * Math.sin((i / 16) * Math.PI)) + 1
+      const x = 9 + Math.round(i * 0.15)
+      p('#a77af5', x, 4 + i, w, 1)
+      p('#d8c0ff', x, 4 + i, 1, 1)
+      p('#6a3fb0', x + w - 1, 4 + i, 1, 1)
+    }
+  } else if (id === 'permata_kegelapan') {
+    elips('#2a1f4a', 12, 13, 8, 7)
+    elips('#4a3380', 11, 11, 6, 5)
+    p('#6a4fa0', 8, 8, 8, 1)
+    p('#8a6fd0', 9, 9, 3, 2)
+    p('#1a1030', 12, 14, 6, 3)
+    p('#ffffff', 9, 9)
+    p('#ffffff', 16, 17)
+  } else if (id === 'jantung_lich') {
+    elips('rgba(95,224,184,0.35)', 12, 12, 10, 9)
+    const jantung = ['.XX..XX.', 'XXXXXXXX', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...']
+    jantung.forEach((baris, j) => {
+      for (let i = 0; i < baris.length; i += 1) {
+        if (baris[i] === 'X') p(j < 2 ? '#d94a3d' : '#a8261c', 4 + i * 2, 6 + j * 2, 2, 2)
+      }
+    })
+    p('#ffb0a0', 6, 8, 2, 2)
+    p('#5fe0b8', 17, 7)
+    p('#5fe0b8', 5, 18)
+  } else {
+    elips('#8a6f4a', 12, 13, 7, 6)
+  }
+}
+
+function ikonUmum(c) {
+  c.k('#8a6f4a', 5, 8, 14, 11)
+  c.p('#d4af37', 11, 12, 2, 3)
+}
+
+// item: baris katalog (id, kategori, kelas, attack, defense). Mengembalikan kanvas 24x24 dengan bingkai kelangkaan.
+export function gambarIkon(item) {
+  const seni = baru(24, 24)
+  const id = item.id
+  const kat = item.kategori
+  if (kat === 'senjata') (item.kelas === 'penyihir' || id.startsWith('tongkat') ? ikonTongkat : ikonPedang)(seni, id)
+  else if (kat === 'armor') ikonArmor(seni, id)
+  else if (kat === 'ramuan') ikonRamuan(seni, id)
+  else if (kat === 'bibit') ikonBibit(seni, id)
+  else if (kat === 'panen') ikonPanen(seni, id)
+  else if (kat === 'tumbuhan') ikonTumbuhan(seni, id)
+  else if (kat === 'ore') ikonBijih(seni, id)
+  else if (kat === 'alat') (id.startsWith('sabit') ? ikonSabit : ikonBeliung)(seni, id)
+  else if (kat === 'bahan') ikonBahan(seni, id)
+  else ikonUmum(seni)
+  perhalus(seni.kanvas)
+  const hasil = baru(24, 24)
+  slot(hasil, nilaiLangka(item))
+  hasil.ctx.drawImage(seni.kanvas, 0, 0)
+  return hasil.kanvas
+}
+
+// Untuk tampilan HTML (kartu hadiah di chat)
+const URL_IKON = new Map()
+export function ikonUrl(item) {
+  if (!URL_IKON.has(item.id)) URL_IKON.set(item.id, gambarIkon(item).toDataURL())
+  return URL_IKON.get(item.id)
+}
