@@ -1,17 +1,22 @@
-// Musik latar "Don Dapdape" (lagu daerah Bali) dan efek suara bergaya 8-bit.
+// Musik latar bergaya 8-bit (lagu daerah Bali) dan efek suara.
 // Semua suara dibuat dengan kode (Web Audio API), tanpa berkas audio.
 
 const KUNCI_NYALA = 'citana-suara-nyala'
 const KUNCI_VOLUME = 'citana-suara-volume'
-const BPM = 120
-const DETIK = 60 / BPM // detik per ketukan
+const KUNCI_LAGU = 'citana-suara-lagu'
 const DASAR = 60 // nada "1" = C4
 const TANGGA = [0, 0, 2, 4, 5, 7, 9, 11] // 1..7 = do re mi fa sol la si (C mayor)
 
 // Bas per akord: [nada ketukan 1, nada ketukan 3] sebagai angka MIDI
-const BAS = { C: [48, 43], Dm: [50, 45], 'Dm/F': [41, 50], Em: [52, 47], G: [43, 50], Am: [45, 52] }
+const BAS = {
+  C: [48, 43], Dm: [50, 45], 'Dm/F': [41, 50], Em: [52, 47], F: [41, 48], G: [43, 50], Am: [45, 52],
+}
 
-// [akord, 'nada:ketukan ...'] per birama. Angka = tangga nada, ^ = oktaf tinggi, 0 = jeda.
+// Format tiap birama: [akord, 'nada:ketukan ...'].
+// Nada: angka 1..7, '^' = oktaf tinggi, '_' = oktaf rendah, 0 = jeda.
+// Akord 'F|G' berarti F di ketukan 1-2 dan G di ketukan 3-4.
+
+// ---------- Don Dapdape (tempo 120) ----------
 const PEMBUKA = [
   ['C', '0:1 1:1 2:1 3:1'],
   ['C', '5:1.5 1^:.5 6:1 1^:1'],
@@ -53,29 +58,101 @@ const ISI = [
   ['G', '3:1.5 5:.5 3:1 2:1'],
   ['C', '1:4'],
 ]
-const LAGU = [...PEMBUKA, ...PEMBUKA, ...ISI] // baris pertama diulang
+const DON_DAPDAPE = [...PEMBUKA, ...PEMBUKA, ...ISI] // baris pertama diulang
+
+// ---------- Putri Cening Ayu (tempo 110) ----------
+const PUTRI_CENING_AYU = [
+  // baris 1
+  ['C', '0:1 0:1 0:1 3:1'],
+  ['C', '5:1.5 3:.5 2:1 3:.5 6_:.5'],
+  ['Em', '5:3 3:.5 5:.5'],
+  ['Am', '3:1.5 2:.5 1:1 5_:1'],
+  // baris 2
+  ['Em', '3:2 0:1 2:.5 3:.5'],
+  ['Dm', '2:1.5 1:.5 6_:.5 2:.5 1:.5 6_:.5'],
+  ['G', '5_:2 0:1 6_:1'],
+  ['C', '1:1.5 2:.5 3:.5 5:.5 3:.5 2:.5'],
+  // baris 3
+  ['Am', '3:1.5 1:.5 1:1.5 1:.5'],
+  ['F|G', '6_:1.5 1:.25 1:.25 2:1 6_:1'],
+  ['C|G', '1:2 0:1 3:1'],
+  ['C', '5:1.5 3:.5 2:1 3:.5 6_:.5'],
+  // baris 4
+  ['Em', '5:3 3:.5 5:.5'],
+  ['Am', '3:1.5 2:.5 1:1 5_:1'],
+  ['Em', '3:2 0:1 2:.5 3:.5'],
+  ['Dm', '2:1.5 1:.5 6_:.5 2:.5 1:.5 6_:.5'],
+  // baris 5
+  ['G', '5_:2 0:1 6_:1'],
+  ['C', '1:1.5 2:.5 3:.5 5:.5 3:.5 2:.5'],
+  ['Am', '3:1.5 1:.5 1:1.5 1:.5'],
+  ['F|G', '6_:1.5 1:.5 2:1 6_:1'],
+  // baris 6
+  ['C|G', '1:2 0:1 5:1'],
+  ['C', '3:2 2:1 3:.5 5:.5'],
+  ['F', '1:3 5:1'],
+  ['C', '3:2 2:1 3:.5 5:.5'],
+  // baris 7
+  ['Am', '1:2 0:1 3:1'],
+  ['Dm', '2:2 1:1 6_:.5 3:.5'],
+  ['G', '2:3 1:1'],
+  ['F', '6_:2 2:1 1:.5 6_:.5'],
+  // baris 8
+  ['G', '5_:2 0:1 6_:1'],
+  ['C', '1:1.5 2:.5 3:.5 5:.5 3:.5 2:.5'],
+  ['Am', '3:1.5 1:.5 1:1.5 1:.5'],
+  ['F|G', '6_:1.5 1:.5 2:1 3:1'],
+  // baris 9
+  ['C', '1:4'],
+]
+
+const LAGU = {
+  don_dapdape: { nama: 'Don Dapdape', bpm: 120, birama: DON_DAPDAPE },
+  putri_cening_ayu: { nama: 'Putri Cening Ayu', bpm: 110, birama: PUTRI_CENING_AYU },
+  // Versi suram untuk kripta: lebih rendah, lebih pelan, nada lebih tipis
+  putri_cening_ayu_gelap: {
+    nama: 'Putri Cening Ayu (kripta)', bpm: 88, geser: -5, gelap: true, birama: PUTRI_CENING_AYU,
+  },
+}
+
+// Lagu otomatis menurut area
+const OTOMATIS = { kerajaan: 'don_dapdape', rumah: 'putri_cening_ayu', kripta: 'putri_cening_ayu_gelap' }
+
+// Pilihan di menu game
+export const PILIHAN_LAGU = [
+  { id: 'otomatis', nama: 'Otomatis' },
+  { id: 'don_dapdape', nama: 'Don Dapdape' },
+  { id: 'putri_cening_ayu', nama: 'Putri C. Ayu' },
+]
 
 // Urai partitur menjadi daftar nada bertanda waktu
-const PERISTIWA = []
-let ketuk = 0
-for (const [akord, nada] of LAGU) {
-  const awal = ketuk
-  for (const t of nada.split(' ')) {
-    const [kode, lama] = t.split(':')
-    const tinggi = kode.endsWith('^')
-    const angka = Number(kode.replace('^', ''))
-    const dur = Number(lama)
-    if (angka > 0) {
-      PERISTIWA.push({ mulai: ketuk, dur, jenis: 'melodi', midi: DASAR + TANGGA[angka] + (tinggi ? 12 : 0) })
+const CACHE = {}
+function bangun(id) {
+  if (CACHE[id]) return CACHE[id]
+  const d = LAGU[id]
+  const geser = d.geser ?? 0
+  const peristiwa = []
+  let ketuk = 0
+  for (const [akord, nada] of d.birama) {
+    const awal = ketuk
+    for (const t of nada.split(' ')) {
+      const [kode, lama] = t.split(':')
+      const oktaf = kode.endsWith('^') ? 12 : kode.endsWith('_') ? -12 : 0
+      const angka = Number(kode.replace(/[\^_]/g, ''))
+      const dur = Number(lama)
+      if (angka > 0) {
+        peristiwa.push({ mulai: ketuk, dur, jenis: 'melodi', midi: DASAR + TANGGA[angka] + oktaf + geser })
+      }
+      ketuk += dur
     }
-    ketuk += dur
+    const [a, b = a] = akord.split('|')
+    peristiwa.push({ mulai: awal, dur: 1.9, jenis: 'bas', midi: BAS[a][0] + geser })
+    peristiwa.push({ mulai: awal + 2, dur: 1.9, jenis: 'bas', midi: (b === a ? BAS[a][1] : BAS[b][0]) + geser })
   }
-  const [a, b] = BAS[akord]
-  PERISTIWA.push({ mulai: awal, dur: 1.9, jenis: 'bas', midi: a })
-  PERISTIWA.push({ mulai: awal + 2, dur: 1.9, jenis: 'bas', midi: b })
+  peristiwa.sort((x, y) => x.mulai - y.mulai)
+  CACHE[id] = { peristiwa, panjang: ketuk + 2, detik: 60 / d.bpm, gelap: Boolean(d.gelap), nama: d.nama }
+  return CACHE[id]
 }
-PERISTIWA.sort((x, y) => x.mulai - y.mulai)
-const PANJANG = ketuk + 2 // jeda dua ketukan sebelum lagu diulang
 
 function baca(kunci, bawaan) {
   try {
@@ -92,15 +169,23 @@ function simpan(kunci, nilai) {
   }
 }
 
+const pilihanTersimpan = baca(KUNCI_LAGU, 'otomatis')
+
 const S = {
   ctx: null,
   master: null,
   musik: null,
   sfxBus: null,
   pulsa: null,
+  pulsaTipis: null,
   derau: null,
   nyala: baca(KUNCI_NYALA, '1') === '1',
   volume: Math.min(1, Math.max(0, Number(baca(KUNCI_VOLUME, '0.7')) || 0.7)),
+  pilihan: PILIHAN_LAGU.some((p) => p.id === pilihanTersimpan) ? pilihanTersimpan : 'otomatis',
+  suasana: 'kerajaan',
+  lagu: null,
+  data: null,
+  aktif: new Set(),
   berjalan: false,
   timer: null,
   indeks: 0,
@@ -111,10 +196,27 @@ const S = {
   terpasang: false,
   pantauTab: false,
 }
-S.cuplikan = { nyala: S.nyala, volume: S.volume }
+
+function idLagu() {
+  return S.pilihan !== 'otomatis' && LAGU[S.pilihan] ? S.pilihan : OTOMATIS[S.suasana]
+}
+
+// Menyiapkan lagu yang berlaku sekarang. Mengembalikan true jika lagunya berubah.
+function siapkanLagu() {
+  const id = idLagu()
+  if (S.lagu === id && S.data) return false
+  S.lagu = id
+  S.data = bangun(id)
+  return true
+}
+
+function perbaruiCuplikan() {
+  S.cuplikan = { nyala: S.nyala, volume: S.volume, pilihan: S.pilihan, lagu: S.data?.nama ?? LAGU[idLagu()].nama }
+}
+perbaruiCuplikan()
 
 function umumkan() {
-  S.cuplikan = { nyala: S.nyala, volume: S.volume }
+  perbaruiCuplikan()
   S.pendengar.forEach((f) => f())
 }
 
@@ -149,16 +251,17 @@ function pastikanCtx() {
   S.musik = musik
   S.sfxBus = sfxBus
   S.pulsa = bentukPulsa(ctx, 0.25)
+  S.pulsaTipis = bentukPulsa(ctx, 0.125)
   S.derau = derau
   return ctx
 }
 
 function mainkanNada(e, t) {
   const ctx = S.ctx
-  const detik = e.dur * DETIK
+  const detik = e.dur * S.data.detik
   const osc = ctx.createOscillator()
   const g = ctx.createGain()
-  if (e.jenis === 'melodi') osc.setPeriodicWave(S.pulsa)
+  if (e.jenis === 'melodi') osc.setPeriodicWave(S.data.gelap ? S.pulsaTipis : S.pulsa)
   else osc.type = 'triangle'
   osc.frequency.value = 440 * 2 ** ((e.midi - 69) / 12)
   const puncak = e.jenis === 'melodi' ? 0.26 : 0.34
@@ -169,6 +272,8 @@ function mainkanNada(e, t) {
   g.gain.linearRampToValueAtTime(0.0001, t + detik * 0.98)
   osc.connect(g)
   g.connect(S.musik)
+  S.aktif.add(osc)
+  osc.onended = () => S.aktif.delete(osc)
   osc.start(t)
   osc.stop(t + detik)
 }
@@ -176,17 +281,18 @@ function mainkanNada(e, t) {
 // Menjadwalkan nada sedikit ke depan agar tempo tetap rapi
 function jadwalkan() {
   const ctx = S.ctx
-  if (!ctx || ctx.state !== 'running') return
+  if (!ctx || ctx.state !== 'running' || !S.data) return
+  const { peristiwa, panjang, detik } = S.data
   const batas = ctx.currentTime + 0.35
   for (;;) {
-    const e = PERISTIWA[S.indeks]
-    const t = S.awalLoop + e.mulai * DETIK
+    const e = peristiwa[S.indeks]
+    const t = S.awalLoop + e.mulai * detik
     if (t > batas) break
     if (S.nyala && t >= ctx.currentTime - 0.05) mainkanNada(e, Math.max(t, ctx.currentTime))
     S.indeks += 1
-    if (S.indeks >= PERISTIWA.length) {
+    if (S.indeks >= peristiwa.length) {
       S.indeks = 0
-      S.awalLoop += PANJANG * DETIK
+      S.awalLoop += panjang * detik
     }
   }
 }
@@ -218,6 +324,8 @@ function saatTabBerubah() {
 function mulaiMusik() {
   const ctx = pastikanCtx()
   if (!ctx || S.berjalan) return
+  siapkanLagu()
+  umumkan()
   S.berjalan = true
   S.indeks = 0
   S.awalLoop = ctx.currentTime + 0.15
@@ -240,6 +348,36 @@ function hentikanMusik() {
     S.musik.gain.cancelScheduledValues(S.ctx.currentTime)
     S.musik.gain.setTargetAtTime(0, S.ctx.currentTime, 0.05) // senyapkan nada yang sudah terjadwal
   }
+}
+
+// Ganti lagu bila pilihan atau area berubah; lagu baru mulai dari awal setelah jeda singkat
+function perbaruiLagu() {
+  const berubah = siapkanLagu()
+  umumkan()
+  if (!berubah || !S.berjalan || !S.ctx) return
+  for (const osc of S.aktif) {
+    try {
+      osc.stop()
+    } catch {
+      // nada belum mulai atau sudah berhenti
+    }
+  }
+  S.aktif.clear()
+  S.indeks = 0
+  S.awalLoop = S.ctx.currentTime + 0.4
+}
+
+function setSuasana(nama) {
+  if (!OTOMATIS[nama] || S.suasana === nama) return
+  S.suasana = nama
+  perbaruiLagu()
+}
+
+function setPilihanLagu(id) {
+  if (!PILIHAN_LAGU.some((p) => p.id === id)) return
+  S.pilihan = id
+  simpan(KUNCI_LAGU, id)
+  perbaruiLagu()
 }
 
 function setNyala(nilai) {
@@ -342,6 +480,8 @@ export const suara = {
   hentikanMusik,
   setNyala,
   setVolume,
+  setSuasana,
+  setPilihanLagu,
   sfx,
   berlangganan: (fungsi) => {
     S.pendengar.add(fungsi)

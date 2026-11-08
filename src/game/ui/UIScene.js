@@ -60,7 +60,10 @@ export default class UIScene extends Phaser.Scene {
     const daftar = [
       ['hadiah', (h) => this.buka('hadiah', h)],
       ['toast', (t) => this.toast(t)],
-      ['peta', (n) => { this.peta = n }],
+      ['peta', (n) => {
+        this.peta = n
+        suara.setSuasana(n === 'pribadi' ? 'rumah' : n === 'dungeon' ? 'kripta' : 'kerajaan')
+      }],
       ['zona-aman', (v) => { this.aman = v }],
       ['pemain-sekitar', (d) => { this.sekitar = d }],
       ['target', (t) => { this.target = { ...t, sampai: performance.now() + 6000 } }],

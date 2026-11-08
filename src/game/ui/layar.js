@@ -1,5 +1,5 @@
 import { NAMA_GAYA_RAMBUT, PALET_BAJU, PALET_KULIT, PALET_RAMBUT } from '../gambar'
-import { suara } from '../suara'
+import { PILIHAN_LAGU, suara } from '../suara'
 import { WARNA, rupiah } from './gaya'
 
 const NAMA_TIER = ['', 'perunggu', 'perak', 'emas', 'berlian', 'obsidian', 'mitril']
@@ -103,6 +103,18 @@ export const LAYAR = {
         kanan: `${Math.round(s.volume * 100)}%`,
         ubah: (a) => {
           suara.setVolume(Math.round((suara.cuplikan().volume + a * 0.1) * 10) / 10)
+          ui.render()
+        },
+      },
+      
+      {
+        teks: 'Musik',
+        kanan: PILIHAN_LAGU.find((p) => p.id === s.pilihan)?.nama ?? 'Otomatis',
+        sub: `Memutar: ${s.lagu}`,
+        ubah: (a) => {
+          const n = PILIHAN_LAGU.length
+          const i = PILIHAN_LAGU.findIndex((p) => p.id === suara.cuplikan().pilihan)
+          suara.setPilihanLagu(PILIHAN_LAGU[(i + a + n) % n].id)
           ui.render()
         },
       },
