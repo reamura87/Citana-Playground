@@ -149,6 +149,43 @@ export const LAYAR = {
     }
   },
 
+    skill(ui) {
+    const st = ui.status()
+    const p = st.pemain
+    const saya = ui.registry.get('skillSaya') ?? []
+    const daftar = ui
+      .katalog()
+      .skill.filter((s) => s.kelas === p.kelas.id)
+      .sort((a, b) => a.slot - b.slot)
+    return {
+      judul: `Skill ${p.kelas.nama}`,
+      info: [`Gold: ${rupiah(p.gold)} · skill permanen, punya cooldown. PC: tombol 1-4.`],
+      baris: daftar.map((s) => {
+        const punya = saya.some((x) => x.skill_id === s.id)
+        const okLevel = p.level >= s.min_level
+        return {
+          teks: `[${s.slot}] ${s.nama}`,
+          ikon: ui.ikonSkill(s.id),
+          kanan: punya ? 'Dimiliki' : `${rupiah(s.harga)} g`,
+          warnaKanan: punya ? WARNA.hijau : WARNA.emas,
+          sub: `${s.deskripsi} CD ${s.cooldown_ms / 1000} dtk${punya || okLevel ? '' : ` · butuh Lv ${s.min_level}`}`,
+          aktif: !punya && okLevel && p.gold >= s.harga,
+          alasan: punya ? 'Skill ini sudah kamu miliki.' : !okLevel ? `Butuh level ${s.min_level}.` : 'Gold tidak cukup.',
+          aksi: () =>
+            ui.tanya({
+              judul: s.nama,
+              info: [s.deskripsi, `Cooldown ${s.cooldown_ms / 1000} detik · slot ${s.slot} (tombol ${s.slot})`],
+              opsi: [
+                { teks: `Beli (${rupiah(s.harga)} g)`, aksi: () => ui.api().skillBeli(s.id) },
+                { teks: 'Batal' },
+              ],
+            }),
+        }
+      }),
+      kaki: 'A: pilih · B: kembali',
+    }
+  },
+
   status(ui) {
     const p = ui.status().pemain
     return {

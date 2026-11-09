@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const DIAM = { kiri: false, kanan: false, atas: false, bawah: false }
 
@@ -89,7 +89,39 @@ function TombolGB({ label, nama, kelas, onTekan, ulang = false }) {
   )
 }
 
-export default function KontrolGB({ onArah, onSerang, onAksi, onMenu, onObrol, belumBaca = 0 }) {
+function TombolSkill({ s, onSkill }) {
+  const [sisa, setSisa] = useState(0)
+
+  useEffect(() => {
+    if (!s.ada) return
+    const t = setInterval(() => setSisa(Math.max(0, s.akhir - Date.now())), 200)
+    return () => clearInterval(t)
+  }, [s.ada, s.akhir])
+
+  const persen = s.ada && sisa > 0 ? Math.min(100, (sisa / s.total) * 100) : 0
+  return (
+    <button
+      type="button"
+      className={`gb-skill${s.ada ? '' : ' kosong'}`}
+      disabled={!s.ada}
+      aria-label={s.ada ? s.nama : `Slot skill ${s.slot} kosong`}
+      onPointerDown={(e) => {
+        if (!s.ada) return
+        e.preventDefault()
+        onSkill(s.slot)
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <span className="gb-skill-kunci">{s.slot}</span>
+      {s.ada && <img src={s.ikon} alt="" />}
+      {persen > 0 && <span className="gb-skill-cd" style={{ height: `${persen}%` }} />}
+      {persen > 0 && <strong className="gb-skill-detik">{Math.ceil(sisa / 1000)}</strong>}
+    </button>
+  )
+}
+
+export default function KontrolGB({ onArah, onSerang, onAksi, onMenu, onObrol, belumBaca = 0, skill = [], onSkill }) {
+  const slot = [1, 2, 3, 4].map((n) => skill[n - 1] ?? { slot: n, ada: false })
   return (
     <div className="game-kontrol gb-kontrol" aria-label="Kontrol layar sentuh">
       <button type="button" className="gb-pil gb-obrol" onClick={onObrol}>
@@ -102,6 +134,11 @@ export default function KontrolGB({ onArah, onSerang, onAksi, onMenu, onObrol, b
       <div className="gb-tombol">
         <TombolGB label="B" nama="Aksi" kelas="gb-b" onTekan={onAksi} />
         <TombolGB label="A" nama="Serang" kelas="gb-a" onTekan={onSerang} ulang />
+      </div>
+      <div className="gb-skillbar" role="group" aria-label="Skill">
+        {slot.map((s) => (
+          <TombolSkill key={s.slot} s={s} onSkill={onSkill} />
+        ))}
       </div>
     </div>
   )

@@ -1542,3 +1542,88 @@ export function ikonUrl(item) {
   if (!URL_IKON.has(item.id)) URL_IKON.set(item.id, gambarIkon(item).toDataURL())
   return URL_IKON.get(item.id)
 }
+
+// ---------- Ikon skill (24x24, dengan bingkai warna role) ----------
+const AKSEN_SKILL = { ksatria: '#6f86b8', penyihir: '#9a62e0' }
+const SKILL_KSATRIA = ['tebasan_kuat', 'perisai_baja', 'hentakan_bumi', 'amukan_naga']
+
+export function gambarIkonSkill(id) {
+  const c = baru(24, 24)
+  const { p, k, garis, elips } = c
+  p(AKSEN_SKILL[SKILL_KSATRIA.includes(id) ? 'ksatria' : 'penyihir'], 0, 0, 24, 24)
+  p('#1a1830', 1, 1, 22, 22)
+  p('#262244', 1, 12, 22, 11)
+
+  if (id === 'tebasan_kuat') {
+    garis('rgba(224,69,58,0.7)', 3, 8, 15, 21, 2)
+    garis('#e8eef8', 6, 18, 18, 6, 2)
+    garis('#ffffff', 7, 17, 18, 6, 1)
+    garis('#d4af37', 5, 13, 10, 18, 2)
+    garis('#6b4423', 4, 19, 7, 16, 2)
+  } else if (id === 'perisai_baja') {
+    for (let y = 4; y <= 20; y += 1) {
+      const hw = y < 13 ? 7 : Math.max(1, 7 - (y - 13))
+      p('#aab3bf', 12 - hw, y, hw * 2, 1)
+      p('#737d8b', 12, y, hw, 1)
+    }
+    p('#d3d9e2', 5, 4, 14, 1)
+    p('#c0392b', 11, 6, 2, 11)
+    p('#c0392b', 8, 9, 8, 2)
+  } else if (id === 'hentakan_bumi') {
+    elips('#c9b38c', 12, 19, 9, 3)
+    garis('#2a1f10', 12, 19, 5, 13, 1)
+    garis('#2a1f10', 12, 19, 19, 13, 1)
+    garis('#2a1f10', 12, 19, 12, 12, 1)
+    k('#d9a577', 9, 4, 6, 8)
+    p('#8a5a2b', 9, 10, 6, 2)
+    p('#fff2b0', 4, 14)
+    p('#fff2b0', 19, 14)
+    p('#fff2b0', 12, 14)
+  } else if (id === 'amukan_naga') {
+    elips('#e0453a', 12, 13, 7, 8)
+    elips('#ff9a2e', 12, 14, 5, 6)
+    elips('#ffe27a', 12, 15, 3, 4)
+    p('#8a1f1f', 7, 4, 2, 5)
+    p('#8a1f1f', 15, 4, 2, 5)
+    p('#ffffff', 9, 11, 2, 1)
+    p('#ffffff', 13, 11, 2, 1)
+    p('#1a1010', 9, 12)
+    p('#1a1010', 14, 12)
+  } else if (id === 'bola_api') {
+    garis('#ff7a1f', 3, 20, 10, 13, 3)
+    garis('#ffb02e', 5, 19, 11, 14, 1)
+    elips('#e0453a', 15, 9, 6, 6)
+    elips('#ff9a2e', 14, 9, 4, 4)
+    elips('#ffe27a', 13, 8, 2, 2)
+  } else if (id === 'pulih_cahaya') {
+    elips('rgba(156,232,156,0.35)', 12, 12, 9, 9)
+    k('#9ce89c', 10, 5, 4, 14)
+    k('#9ce89c', 5, 10, 14, 4)
+    p('#ffffff', 11, 11, 2, 2)
+    p('#d8ffd8', 4, 5)
+    p('#d8ffd8', 19, 18)
+  } else if (id === 'ledakan_arkana') {
+    elips('rgba(176,112,255,0.4)', 12, 12, 9, 9)
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+      garis('#d0a0ff', 12, 12, 12 + dx * 8, 12 + dy * 8, 1)
+    }
+    elips('#ffffff', 12, 12, 3, 3)
+    elips('#b070ff', 12, 12, 2, 2)
+  } else {
+    // badai_petir
+    elips('#6a6f8a', 8, 7, 5, 3)
+    elips('#8a8fa8', 14, 6, 5, 3)
+    elips('#6a6f8a', 18, 8, 4, 2)
+    garis('#ffe27a', 14, 9, 9, 14, 2)
+    garis('#ffe27a', 9, 14, 15, 14, 2)
+    garis('#ffe27a', 15, 14, 10, 21, 2)
+    p('#ffffff', 13, 10)
+  }
+  return c.kanvas
+}
+
+const URL_SKILL = new Map()
+export function ikonSkillUrl(id) {
+  if (!URL_SKILL.has(id)) URL_SKILL.set(id, gambarIkonSkill(id).toDataURL())
+  return URL_SKILL.get(id)
+}

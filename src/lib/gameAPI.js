@@ -19,17 +19,19 @@ export const jual = (item, jumlah) => rpc('game_jual', { p_item: item, p_jumlah:
 export const upgradeRumah = () => rpc('game_upgrade_rumah')
 
 export async function ambilKatalog() {
-  const [item, tanaman, alat, kelas] = await Promise.all([
+  const [item, tanaman, alat, kelas, skill] = await Promise.all([
     supabase.from('game_item').select('*').eq('aktif', true),
     supabase.from('game_tanaman').select('*').eq('aktif', true),
     supabase.from('game_alat').select('*'),
     supabase.from('game_kelas').select('*'),
+    supabase.from('game_skill').select('*'),
   ])
   if (item.error) throw item.error
   if (tanaman.error) throw tanaman.error
   if (alat.error) throw alat.error
   if (kelas.error) throw kelas.error
-  return { item: item.data, tanaman: tanaman.data, alat: alat.data, kelas: kelas.data }
+  if (skill.error) throw skill.error
+  return { item: item.data, tanaman: tanaman.data, alat: alat.data, kelas: kelas.data, skill: skill.data }
 }
 
 export const forageMulai = (titik) => rpc('game_forage_mulai', { p_titik: titik })
@@ -100,3 +102,7 @@ export const dungeonDiserang = (idx) => rpc('game_dungeon_diserang', { p_idx: id
 export const dungeonPeti = (idx) => rpc('game_dungeon_peti', { p_idx: idx })
 export const dungeonPulih = () => rpc('game_dungeon_pulih')
 export const dungeonKeluar = () => rpc('game_dungeon_keluar')
+export const skillSaya = () => rpc('game_skill_saya')
+export const skillBeli = (skill) => rpc('game_skill_beli', { p_skill: skill })
+export const skillPakai = (slot, target) => rpc('game_skill_pakai', { p_slot: slot, p_target: target })
+export const dungeonSkill = (slot, target) => rpc('game_dungeon_skill', { p_slot: slot, p_idx: target })

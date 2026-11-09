@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { DIALOG } from '../dialog'
 import { rupaDariKustom } from '../gambar'
-import { WAJAH, gambarIkon, gambarKelas, gambarWajah } from '../seni'
+import { WAJAH, gambarIkon, gambarIkonSkill, gambarKelas, gambarWajah } from '../seni'
 import { suara } from '../suara'
 import { LAYAR } from './layar'
 import { L, T, WARNA, formatSisa, gambarJendela, gaya, rupiah } from './gaya'
@@ -76,7 +76,7 @@ export default class UIScene extends Phaser.Scene {
     const data = () => {
       if (this.hidup && this.tumpukan.length) this.render()
     }
-    const kunciData = ['status', 'dunia', 'katalog']
+    const kunciData = ['status', 'dunia', 'katalog', 'skillSaya']
     for (const k of kunciData) this.registry.events.on(`changedata-${k}`, data)
     this.input.on('pointerdown', (p) => {
       this.seret = { y0: p.y, g0: this.atas()?.gulir ?? 0, gerak: false }
@@ -137,6 +137,25 @@ export default class UIScene extends Phaser.Scene {
       ])
       .setDepth(10)
 
+    // Bilah skill: 4 slot di kiri bawah
+    this.hSkill = [0, 1, 2, 3].map((i) => {
+      const x = 8 + i * 36
+      const y = 280
+      const bingkai = this.add
+        .rectangle(x, y, 32, 32, 0x0b1030, 0.75)
+        .setOrigin(0)
+        .setStrokeStyle(1, WARNA.garisDalam)
+        .setInteractive({ useHandCursor: true })
+      bingkai.on('pointerdown', () => this.tandaiKlik())
+      bingkai.on('pointerup', () => this.game.events.emit('skill', i + 1))
+      const ikon = this.add.image(x + 4, y + 4, 'cahaya').setOrigin(0).setDisplaySize(24, 24).setVisible(false)
+      const cd = this.add.rectangle(x + 1, y + 1, 30, 30, 0x000000, 0.65).setOrigin(0).setVisible(false)
+      const detik = t(x + 16, y + 9, '', 13).setOrigin(0.5, 0)
+      const kunci = t(x + 3, y + 1, String(i + 1), 9, WARNA.emas)
+      this.hud.add([bingkai, ikon, cd, detik, kunci])
+      return { bingkai, ikon, cd, detik, id: null }
+    })
+
     this.matiTeks = this.tulis(240, 156, '', 14).setOrigin(0.5)
     this.mati = this.add
       .container(0, 0, [
@@ -185,6 +204,33 @@ export default class UIScene extends Phaser.Scene {
     this.hXpIsi.setSize(Math.round(128 * Math.min(1, p.xp / p.xp_butuh)), 3)
     this.hGold.setText(`${rupiah(p.gold)} G`)
     this.hAman.setText(this.aman ? 'Zona aman' : '')
+
+    const slots = this.registry.get('slotSkill') ?? []
+    for (let i = 0; i < 4; i += 1) {
+      const s = slots[i]
+      const o = this.hSkill[i]
+      if (!s?.ada) {
+        o.ikon.setVisible(false)
+        o.cd.setVisible(false)
+        o.detik.setText('')
+        o.bingkai.setAlpha(0.45)
+        continue
+      }
+      o.bingkai.setAlpha(1)
+      if (o.id !== s.id) {
+        o.id = s.id
+        o.ikon.setTexture(this.ikonSkill(s.id))
+      }
+      o.ikon.setVisible(true)
+      const sisa = Math.max(0, s.akhir - Date.now())
+      if (sisa > 0) {
+        o.cd.setVisible(true).setSize(30, Math.max(1, Math.round(30 * Math.min(1, sisa / s.total))))
+        o.detik.setText(String(Math.ceil(sisa / 1000)))
+      } else {
+        o.cd.setVisible(false)
+        o.detik.setText('')
+      }
+    }
 
     const tg = this.target && performance.now() < this.target.sampai ? this.target : null
     this.barMusuh(this.hTarget, tg ? { nama: tg.nama, hp: tg.hp, maks: tg.hp_maks } : null)
@@ -508,6 +554,12 @@ export default class UIScene extends Phaser.Scene {
     if (!item) return null
     const kunci = `ikon_${item.id}`
     if (!this.textures.exists(kunci)) this.textures.addCanvas(kunci, gambarIkon(item))
+    return kunci
+  }
+
+  ikonSkill(id) {
+    const kunci = `skill_${id}`
+    if (!this.textures.exists(kunci)) this.textures.addCanvas(kunci, gambarIkonSkill(id))
     return kunci
   }
 

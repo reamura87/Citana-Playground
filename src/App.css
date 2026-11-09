@@ -1329,3 +1329,72 @@ main.lebar .game-area { max-width: none; }
   vertical-align: middle;
   image-rendering: pixelated;
 }
+
+/* ===== Tombol skill (HP) ===== */
+.gb-skillbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.gb-skill {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 62px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--fg);
+  background: var(--field);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  touch-action: none;
+  cursor: pointer;
+}
+.gb-skill img { width: 40px; height: 40px; image-rendering: pixelated; }
+.gb-skill.kosong { opacity: 0.45; cursor: default; }
+.gb-skill:not(.kosong):active { background: var(--line); }
+.gb-skill-kunci {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffe27a;
+  text-shadow: 0 1px 2px #000;
+}
+.gb-skill-cd { position: absolute; top: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.62); }
+.gb-skill-detik {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000;
+}
+
+/* Potret: baris skill di bawah gamepad */
+.gb-rangka {
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas:
+    'layar layar'
+    'obrol mulai'
+    'kiri kanan'
+    'skill skill';
+}
+.gb-rangka .gb-skillbar { grid-area: skill; }
+@media (max-height: 620px) {
+  .gb-pil { min-height: 46px; }
+  .gb-skill { height: 52px; }
+  .gb-skill img { width: 32px; height: 32px; }
+}
+
+/* Lanskap: skill disusun 2x2 di bawah D-pad */
+@media (orientation: landscape) {
+  .gb-rangka {
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'obrol layar mulai'
+      'kiri layar kanan'
+      'skill layar .';
+  }
+  .gb-rangka .gb-skillbar { grid-template-columns: repeat(2, 1fr); gap: 6px; justify-self: center; width: min(130px, 100%); }
+  .gb-skill { height: 48px; }
+  .gb-skill img { width: 32px; height: 32px; }
+}

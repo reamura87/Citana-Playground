@@ -54,7 +54,7 @@ export const DIALOG = {
     buka: ['Selamat datang, {nama}. Aku Elara, penjaga jalan para petualang.'],
     tanya: 'Apa yang ingin kamu tanyakan?',
     pilihan: [
-      { teks: 'Tentang rolemu', aksi: ['layar', 'kelas'] },
+      { teks: 'Pelajari skill', aksi: ['layar', 'skill'] },
       {
         teks: 'Bisakah role diganti?',
         halaman: [

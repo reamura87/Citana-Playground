@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import KontrolGB from '../components/KontrolGB'
 import PanelChat from '../components/PanelChat'
@@ -7,11 +7,13 @@ import {
   adminAturKarakter, adminPakai, ambilDunia, ambilKatalog, ambilMisi, beli, buatKarakter, diserang,
   forageBatal, forageMulai, forageSelesai, jual, kirimHadiah, klaimMisi, masukGame, pakai, panen,
   serang, tambahPoin, tanam, upgradeRumah, dungeonDiserang, dungeonKeluar, dungeonMasuk, dungeonPeti, dungeonPulih, dungeonSerang,
+  dungeonSkill, skillBeli, skillPakai, skillSaya,
 } from '../lib/gameAPI'
 import { useAktivitas, useChat, useMultiplayer } from '../lib/useMultiplayer'
 import { useModeHP } from '../lib/useModeHP'
 import { useAuth, useSesi } from '../lib/useSesi'
 import { gabungMusuh } from '../game/dungeon'
+import { ikonSkillUrl } from '../game/seni'
 
 const SENYAP = ['Terlalu cepat', 'Kamu sedang menunggu respawn', 'Musuh ini sudah mati']
 
@@ -56,6 +58,24 @@ function duniaDungeon(d, st) {
   }
 }
 
+// 4 slot skill: slot kosong tetap ada tapi polos
+function susunSlot(katalog, kelasId, skillData) {
+  return [1, 2, 3, 4].map((slot) => {
+    const def = katalog?.skill?.find((s) => s.kelas === kelasId && s.slot === slot)
+    const milik = def && skillData.saya.find((x) => x.skill_id === def.id)
+    if (!def || !milik) return { slot, ada: false }
+    return {
+      slot,
+      ada: true,
+      id: def.id,
+      nama: def.nama,
+      total: def.cooldown_ms,
+      akhir: Date.parse(milik.siap_pada) - skillData.selisih,
+      ikon: ikonSkillUrl(def.id),
+    }
+  })
+}
+
 export default function GamePage() {
   const navigate = useNavigate()
   const sesi = useSesi()
@@ -79,6 +99,16 @@ export default function GamePage() {
   const [chatBuka, setChatBuka] = useState(false)
   const [idDibaca, setIdDibaca] = useState(0)
   const [dungeon, setDungeon] = useState(null)
+
+  const [skillData, setSkillData] = useState({ saya: [], selisih: 0 })
+  const slotRef = useRef([])
+  const pakaiSkillRef = useRef(null)
+  const kelasId = status?.pemain.kelas.id ?? null
+  const slots = useMemo(() => susunSlot(katalog, kelasId, skillData), [katalog, kelasId, skillData])
+
+  function terapkanSkill(r) {
+    if (r) setSkillData({ saya: r.skill, selisih: Date.parse(r.waktu_server) - Date.now() })
+  }
   
   const petaRef = useRef('server')
   const wadah = useRef(null)
@@ -245,6 +275,8 @@ export default function GamePage() {
       game.registry.set('dunia', duniaRef.current)
       game.registry.set('alat', alatRef.current)
       game.registry.set('waktuPaksa', null)
+      game.registry.set('slotSkill', slotRef.current)
+      game.events.on('skill', (n) => pakaiSkillRef.current?.(n))
       game.events.on('interaksi', (o) => aksiRef.current?.(o))
       game.events.on('serang', (id) => serangRef.current?.(id))
       game.events.on('diserang', (id) => diserangRef.current?.(id))
@@ -283,6 +315,38 @@ export default function GamePage() {
       game.registry.set('alat', alatRef.current)
     }
   }, [status, selisih, katalog])
+
+    // Skill milik pemain: dimuat saat game siap
+  useEffect(() => {
+    if (tahap !== 'siap') return
+    skillSaya()
+      .then((r) => setSkillData({ saya: r.skill, selisih: Date.parse(r.waktu_server) - Date.now() }))
+      .catch(() => {
+        // abaikan, skill baru termuat setelah aksi berikutnya
+      })
+  }, [tahap])
+
+  // Bilah skill di dalam game
+  useEffect(() => {
+    slotRef.current = slots
+    const game = gameRef.current
+    if (!game) return
+    game.registry.set('slotSkill', slots)
+    game.registry.set('skillSaya', skillData.saya)
+  }, [slots, skillData])
+
+  // Tombol keyboard 1-4 untuk skill (tidak bentrok dengan WASD, Spasi, E, M, Esc, Enter)
+  useEffect(() => {
+    function tekan(e) {
+      const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code)
+      if (!m || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      const tag = document.activeElement?.tagName
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      pakaiSkillRef.current?.(Number(m[1]))
+    }
+    window.addEventListener('keydown', tekan)
+    return () => window.removeEventListener('keydown', tekan)
+  }, [])
 
   useEffect(() => {
     const game = gameRef.current
@@ -437,6 +501,74 @@ export default function GamePage() {
     }
   }
 
+  async function pakaiSkill(slot) {
+    const game = gameRef.current
+    const st = statusRef.current
+    if (!game || sibuk || !st || st.pemain.mati_sampai || game.registry.get('uiBuka')) return
+    const s = slotRef.current[slot - 1]
+    if (!s?.ada) return
+    const def = katalogRef.current.skill.find((x) => x.id === s.id)
+    if (s.akhir > Date.now()) {
+      info(`${s.nama} masih cooldown.`)
+      return
+    }
+    const menyerang = def.jenis === 'serang' || def.jenis === 'area'
+    let target = []
+    if (menyerang) {
+      if (scene()?.pemainAman()) {
+        info('Zona aman: tidak bisa menyerang.')
+        return
+      }
+      target = scene()?.targetSkill(def) ?? []
+      if (target.length === 0) {
+        info('Tidak ada musuh dalam jangkauan.')
+        return
+      }
+    }
+    const dungeon = petaRef.current === 'dungeon'
+    suara.sfx(def.jenis === 'pulih' ? 'ambil' : st.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
+    try {
+      const r = dungeon ? await dungeonSkill(slot, target) : await skillPakai(slot, target)
+      terapkan(r.status)
+      terapkanSkill(r.skill)
+      if (dungeon && r.dungeon) perbaruiDungeon(r.dungeon)
+      scene()?.efekSkill(def, target)
+      if (def.jenis === 'pulih') info('HP-mu dipulihkan.')
+      if (def.jenis === 'perisai') info('Perisai aktif!')
+      for (const p of r.pukulan) {
+        const id = dungeon ? p.idx : p.spawn.id
+        if (!dungeon) {
+          setDunia(
+            (d) =>
+              d && {
+                ...d,
+                spawn: d.spawn.map((x) => (x.id === p.spawn.id ? p.spawn : x)),
+                sumbangan_bos: p.hasil.jenis === 'bos' ? p.hasil.sumbangan : d.sumbangan_bos,
+              },
+          )
+        }
+        gameRef.current?.events.emit('target', { nama: p.hasil.nama, hp: p.hasil.hp, hp_maks: p.hasil.hp_maks })
+        scene()?.tampilkanPukulan(id, p.hasil)
+        suara.sfx(p.hasil.mati ? 'bunuh' : 'pukul')
+        if (p.balasan) {
+          scene()?.tampilkanLuka(p.balasan)
+          suara.sfx(p.balasan.mati ? 'gugur' : 'kena')
+          batalForage()
+        }
+        if (p.hasil.mati) {
+          info(ringkasKill(p.hasil))
+          if (dungeon && p.hasil.jenis === 'bos') {
+            gameRef.current?.events.emit('hadiah', { judul: 'Lich Agung dikalahkan!', loot: p.loot })
+          }
+        }
+        if (p.balasan?.mati) info('Kamu gugur! Kamu akan hidup kembali dalam 5 menit.')
+      }
+    } catch (err) {
+      if (SENYAP.includes(err.message)) return
+      info(err.message)
+    }
+  }
+
   async function serangMusuh(id) {
     if (petaRef.current === 'dungeon') return serangDungeon(id)
     suara.sfx(statusRef.current?.pemain.kelas.id === 'penyihir' ? 'sihir' : 'tebas')
@@ -554,12 +686,18 @@ export default function GamePage() {
 
   useEffect(() => {
     aksiRef.current = aksi
+    pakaiSkillRef.current = pakaiSkill
     serangRef.current = serangMusuh
     diserangRef.current = diserangMusuh
     batalForageRef.current = batalForage
     mpApi.current = { kirimPosisi, sinkron }
     petaRef.current = peta
     apiRef.current = {
+      skillBeli: async (id) => {
+        const h = await jalankan(() => skillBeli(id), 'Skill dipelajari!')
+        if (h) terapkanSkill(h.skill)
+        return h
+      },
       pakai: (id) => jalankan(() => pakai(id), 'Item dipakai.'),
       beli: (id, n) => jalankan(() => beli(id, n), 'Pembelian berhasil.'),
       jual: (id, n) => jalankan(() => jual(id, n), 'Terjual.'),
@@ -730,6 +868,8 @@ export default function GamePage() {
           onMenu={tekanMenu}
           onObrol={alihChat}
           belumBaca={belumBaca}
+          skill={slots}
+          onSkill={pakaiSkill}
         />
 
         {!modeHP && (

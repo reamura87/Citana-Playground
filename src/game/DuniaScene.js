@@ -112,6 +112,7 @@ export default class DuniaScene extends Phaser.Scene {
     this.lampuSaya = null
     this.petiObj = new Map()
     this.mulaiKhusus = data?.mulai ?? null
+    this.perisai = null
   }
 
   create() {
@@ -896,6 +897,104 @@ export default class DuniaScene extends Phaser.Scene {
     }
   }
 
+  // ---------- Skill ----------
+  // Id musuh yang kena skill (dihitung di klien; damage dan batasnya divalidasi server)
+  targetSkill(def) {
+    if (def.jenis === 'serang') {
+      const m = this.cariTarget(null)
+      return m ? [m.data.id] : []
+    }
+    if (def.jenis === 'area') {
+      const daftar = []
+      for (const m of this.spawnObj.values()) {
+        if (m.keadaan !== 'hidup') continue
+        const j = Phaser.Math.Distance.Between(this.pemain.x, this.pemain.y, m.x, m.y)
+        if (j <= def.radius + m.info.radius) daftar.push({ id: m.data.id, j })
+      }
+      daftar.sort((a, b) => a.j - b.j)
+      return daftar.slice(0, def.jumlah_target).map((x) => x.id)
+    }
+    return []
+  }
+
+  efekSkill(def, idTarget = []) {
+    const x = this.pemain.x
+    const y = this.pemain.y
+    const gelombang = (warna, radius, durasi) => {
+      const o = this.add.circle(x, y + 8, 8, warna, 0.3).setStrokeStyle(2, warna).setDepth(DEPTH_UI - 300)
+      this.tweens.add({ targets: o, scale: radius / 8, alpha: 0, duration: durasi, onComplete: () => o.destroy() })
+    }
+    const kilat = (m, warna) => {
+      const g = this.add.graphics().setDepth(DEPTH_UI - 300)
+      g.lineStyle(3, warna, 1)
+      g.beginPath()
+      g.moveTo(m.x + 10, m.y - 90)
+      g.lineTo(m.x - 6, m.y - 52)
+      g.lineTo(m.x + 6, m.y - 48)
+      g.lineTo(m.x, m.y - 6)
+      g.strokePath()
+      this.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() })
+    }
+    const sasaran = idTarget.map((id) => this.spawnObj.get(id)).filter(Boolean)
+    switch (def.id) {
+      case 'tebasan_kuat':
+      case 'amukan_naga': {
+        const warna = def.id === 'amukan_naga' ? 0xff7a1f : 0xffffff
+        for (const m of sasaran) {
+          const o = this.add.circle(m.x, m.y - m.info.tinggi / 2, 6, warna, 0.9).setDepth(DEPTH_UI - 300)
+          this.tweens.add({ targets: o, scale: def.id === 'amukan_naga' ? 5 : 3.5, alpha: 0, duration: 300, onComplete: () => o.destroy() })
+        }
+        if (def.id === 'amukan_naga') this.cameras.main.shake(220, 0.007)
+        break
+      }
+      case 'bola_api':
+        for (const m of sasaran) {
+          this.tembakProyektil(m)
+          const o = this.add.circle(m.x, m.y - m.info.tinggi / 2, 6, 0xff7a1f, 0.9).setDepth(DEPTH_UI - 300)
+          this.tweens.add({ targets: o, scale: 3.5, alpha: 0, duration: 380, delay: 140, onComplete: () => o.destroy() })
+        }
+        break
+      case 'hentakan_bumi':
+        gelombang(0xc9b38c, def.radius, 380)
+        this.cameras.main.shake(180, 0.006)
+        break
+      case 'ledakan_arkana':
+        gelombang(0xb070ff, def.radius, 420)
+        break
+      case 'badai_petir':
+        for (const m of sasaran) kilat(m, 0xfff2b0)
+        gelombang(0xfff2b0, def.radius, 500)
+        this.cameras.main.flash(120, 255, 255, 200)
+        break
+      case 'perisai_baja':
+        this.perisai = { sampai: this.time.now + def.durasi_ms, bentuk: null }
+        gelombang(0x6f86b8, 40, 300)
+        break
+      default:
+        // pulih_cahaya
+        this.teksMelayang(x, y - 30, 'Pulih!', '#9ce89c')
+        gelombang(0x9ce89c, 36, 500)
+        break
+    }
+  }
+
+  perbaruiPerisai() {
+    const s = this.perisai
+    if (!s) return
+    if (this.time.now > s.sampai || !this.pemain) {
+      s.bentuk?.destroy()
+      this.perisai = null
+      return
+    }
+    if (!s.bentuk) {
+      s.bentuk = this.add.ellipse(0, 0, 38, 44).setStrokeStyle(2, 0x9bb4f0, 0.9).setFillStyle(0x6f86b8, 0.2)
+    }
+    s.bentuk
+      .setPosition(this.pemain.x, this.pemain.y)
+      .setDepth(this.pemain.y + 20)
+      .setAlpha(0.6 + 0.4 * Math.sin(this.time.now / 140))
+  }
+
   // ---------- Status dari React ----------
   terapkanStatus() {
     const st = this.registry.get('status')
@@ -1583,6 +1682,7 @@ export default class DuniaScene extends Phaser.Scene {
     }
     this.perbaruiLampu()
     this.perbaruiHewan(dt)
+    this.perbaruiPerisai()
 
     let terdekat = null
     let jarakMin = Infinity
