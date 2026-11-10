@@ -113,7 +113,7 @@ function TombolSkill({ s, onSkill }) {
       onContextMenu={(e) => e.preventDefault()}
     >
       <span className="gb-skill-kunci">{s.slot}</span>
-      {s.ada && <img src={s.ikon} alt="" />}
+      {s.ada && <span className="gb-skill-kunci">{s.slot}</span>}
       {persen > 0 && <span className="gb-skill-cd" style={{ height: `${persen}%` }} />}
       {persen > 0 && <strong className="gb-skill-detik">{Math.ceil(sisa / 1000)}</strong>}
     </button>

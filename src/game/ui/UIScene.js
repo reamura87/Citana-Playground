@@ -153,7 +153,7 @@ export default class UIScene extends Phaser.Scene {
       const detik = t(x + 16, y + 9, '', 13).setOrigin(0.5, 0)
       const kunci = t(x + 3, y + 1, String(i + 1), 9, WARNA.emas)
       this.hud.add([bingkai, ikon, cd, detik, kunci])
-      return { bingkai, ikon, cd, detik, id: null }
+      return { bingkai, ikon, cd, detik, kunci, id: null }
     })
 
     this.matiTeks = this.tulis(240, 156, '', 14).setOrigin(0.5)
@@ -213,9 +213,11 @@ export default class UIScene extends Phaser.Scene {
         o.ikon.setVisible(false)
         o.cd.setVisible(false)
         o.detik.setText('')
+        o.kunci.setVisible(false)
         o.bingkai.setAlpha(0.45)
         continue
       }
+      o.kunci.setVisible(true)
       o.bingkai.setAlpha(1)
       if (o.id !== s.id) {
         o.id = s.id
