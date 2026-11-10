@@ -221,7 +221,7 @@ export default class UIScene extends Phaser.Scene {
       o.bingkai.setAlpha(1)
       if (o.id !== s.id) {
         o.id = s.id
-        o.ikon.setTexture(this.ikonSkill(s.id))
+        o.ikon.setTexture(this.ikonSkill(s.id)).setDisplaySize(24, 24)
       }
       o.ikon.setVisible(true)
       const sisa = Math.max(0, s.akhir - Date.now())
