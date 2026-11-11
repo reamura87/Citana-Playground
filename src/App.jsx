@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -25,6 +25,9 @@ import PassfotoPage from './pages/PasfotoPage'
 import GamePage from './pages/GamePage'
 import { Lapor, Privasi, Syarat } from './pages/halamanhukum'
 
+const AsistenWidget = lazy(
+  () => import('./asisten/AsistenWidget')
+  );
 
 function App() {
   const [tema, setTema] = useState(
@@ -37,6 +40,7 @@ function App() {
   }, [tema])
 
     const { pathname } = useLocation()
+
 
   return (
     <>
@@ -86,6 +90,10 @@ function App() {
         </Routes>
       </main>
       <Footer />
+
+      <Suspense fallback={null}>
+        <AsistenWidget />
+      </Suspense>
     </>
   )
 }

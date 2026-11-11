@@ -5,5 +5,16 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: { exclude: ['@imgly/background-removal', 'onnxruntime-web'] },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://citanaplayground.my.id',
+        changeOrigin: true,
+        secure: true
+      }
+    }
+  }
+
 })
+
 
