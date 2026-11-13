@@ -6,9 +6,9 @@
 const KUNCI_MODE = 'asisten-suara'
 
 // Karakter suara: idol ceria bernada sopran. Ubah angka-angka ini untuk menyetel suara.
-const NADA_DASAR = 520 // Hz, sekitar C5. Makin besar makin tinggi
+const NADA_DASAR = 600 // Hz, sekitar C5. Makin besar makin tinggi
 const NADA_MAKS = 880 // batas atas agar tidak melengking (A5)
-const GESER_FORMANT = 1.12 // 1 = dewasa, lebih besar = saluran suara "lebih kecil", terdengar lebih muda dan cerah
+const GESER_FORMANT = 1.20 // 1 = dewasa, lebih besar = saluran suara "lebih kecil", terdengar lebih muda dan cerah
 const KECEPATAN_DASAR = 1.1 // bicara sedikit lebih cepat dan bersemangat
 export const MODE_SUARA = ['mati', 'animalese', 'asli']
 export const NAMA_MODE = { mati: 'Suara mati', animalese: 'Suara Animalese', asli: 'Suara asli' }
