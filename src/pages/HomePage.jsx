@@ -19,11 +19,11 @@ export default function HomePage() {
         <SatuaSelesai />
       </div>
 
-      <p className="redup">Arsip ide gabut: cerita, gambar, 3D, dan kode.</p>
+      <p className="redup">Semoga ga diban sama komdigi lagi, udah mantep dan legal soalnya.</p>
 
       <section>
         <h2>Alat</h2>
-        <p className="redup">Alat gratis tanpa daftar. Prosesnya di browsermu, file tidak dikirim ke server.</p>
+        <p className="redup">Alat gratis tanpa daftar biar website awak berguna</p>
         <div className="grid-alat">
           {DAFTAR_ALAT.map((a) => (
             <KartuAlat key={a.path} alat={a} />
