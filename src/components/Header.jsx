@@ -54,6 +54,7 @@ export default function Header({ tema, onGantiTema }) {
           <NavLink to="/seni-rupa">Seni rupa</NavLink>
           <NavLink to="/forum">Forum</NavLink>
           <NavLink to="/alat">Alat</NavLink>
+          <NavLink to="/tentang">Tentang</NavLink>
           {profil?.peran === 'admin' && <NavLink to="/admin">Admin</NavLink>}
         </nav>
 

@@ -24,6 +24,7 @@ import PdfKeWordPage from './pages/PdfKeWordPage'
 import PassfotoPage from './pages/PasfotoPage'
 import GamePage from './pages/GamePage'
 import { Lapor, Privasi, Syarat } from './pages/halamanhukum'
+import TentangPage from './tentang/TentangPage'
 
 const AsistenWidget = lazy(
   () => import('./asisten/AsistenWidget')
@@ -73,6 +74,7 @@ function App() {
           <Route path="/satua/personal" element={<SatuaPersonalList />} />
           <Route path="/satua/:slug" element={<SatuaDetail />} />
           <Route path="/satua/:slug/episode/:nomor" element={<EpisodeDetail />} />
+          <Route path="/tentang" element={<TentangPage />} />
 
           <Route path="/tulis" element={<RuteMasuk><EditorTulisan /></RuteMasuk>} />
           <Route path="/tulis/saya" element={<RuteMasuk><TulisanSaya /></RuteMasuk>} />

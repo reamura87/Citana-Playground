@@ -1,0 +1,225 @@
+/* ===== Halaman Tentang bergaya lukisan Kamasan ===== */
+.tentang {
+  --merah: #9d2117;
+  --hitam: #1a1310;
+  --emas: #e0a526;
+  --krem: #f8edd0;
+  position: relative;
+  color: #2a1a12;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* Latar menempel di layar selama halaman digulir; isi berjalan di atasnya */
+.tentang-latar {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  height: 100vh;
+  height: 100dvh;
+  margin-bottom: -100vh;
+  margin-bottom: -100dvh;
+  overflow: hidden;
+  background: #e9cf94;
+}
+.tentang-kanvas { display: block; width: 100%; height: 100%; }
+.tentang-latar::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 6px solid var(--merah);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 3px var(--hitam), inset 0 0 0 6px var(--emas), inset 0 0 0 8px var(--hitam), 0 0 0 2px var(--hitam);
+  pointer-events: none;
+}
+.tentang-sudut {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  background: var(--emas);
+  border: 3px solid var(--hitam);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.tentang-sudut.s1 { top: 0; left: 0; }
+.tentang-sudut.s2 { top: 0; right: 0; }
+.tentang-sudut.s3 { bottom: 0; left: 0; }
+.tentang-sudut.s4 { bottom: 0; right: 0; }
+
+/* Cadangan tanpa WebGL */
+.tentang-statis {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, #f3dfae 0%, #e0bd7a 55%, #c28f4c 100%);
+}
+.tentang-foto-statis {
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: min(300px, 62vw);
+  aspect-ratio: 0.79;
+  overflow: hidden;
+  background: #c98f4d;
+  border: 7px solid var(--merah);
+  border-radius: 50% 50% 6px 6px / 30% 30% 6px 6px;
+  box-shadow: 0 0 0 3px var(--hitam), 0 0 0 7px var(--emas), 0 0 0 10px var(--hitam), 0 18px 40px rgba(60, 20, 10, 0.4);
+  transform: translate(-50%, -50%);
+}
+.tentang-foto-statis img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.tentang-isi { position: relative; z-index: 1; }
+
+/* Hero */
+.tentang-hero { position: relative; height: 100vh; height: 100dvh; }
+.tentang-salam {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font-size: clamp(0.9rem, 2.4vw, 1.15rem);
+  font-style: italic;
+  letter-spacing: 0.16em;
+}
+.tentang-salam span {
+  display: inline-block;
+  padding: 3px 22px 4px;
+  color: #fbefd0;
+  background: var(--merah);
+  border: 2px solid var(--hitam);
+  box-shadow: 0 0 0 2px var(--emas), 0 0 0 4px var(--hitam);
+}
+.tentang-nama {
+  position: absolute;
+  top: calc(var(--foto-bawah, 72%) + 16px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+}
+.tentang-papan {
+  padding: 8px clamp(20px, 5vw, 44px) 10px;
+  text-align: center;
+  background: rgba(248, 237, 208, 0.96);
+  border: 3px solid var(--hitam);
+  box-shadow: 0 0 0 3px var(--merah), 0 0 0 5px var(--hitam), 0 8px 24px rgba(60, 20, 10, 0.35);
+}
+.tentang-papan h1 { margin: 0; font-size: clamp(1.9rem, 5.5vw, 3.2rem); line-height: 1.1; letter-spacing: 0.06em; color: var(--merah); }
+.tentang-papan p { margin: 2px 0 0; font-size: clamp(0.9rem, 2.2vw, 1.1rem); }
+.tentang-papan .kecil { font-size: 0.82rem; color: #6a4a38; }
+.tentang-gulir {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  padding: 2px 14px;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--hitam);
+  background: rgba(248, 237, 208, 0.9);
+  border: 2px solid var(--hitam);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  animation: tentang-turun 2s ease-in-out infinite;
+}
+@keyframes tentang-turun { 50% { transform: translate(-50%, 6px); } }
+
+/* Panel isi */
+.tentang-panel {
+  position: relative;
+  width: min(880px, calc(100% - 56px));
+  margin: 0 auto 64px;
+  padding: 26px clamp(18px, 4vw, 40px) 30px;
+  background: rgba(248, 237, 208, 0.95);
+  border: 3px solid var(--hitam);
+  box-shadow: 0 0 0 4px var(--merah), 0 0 0 7px var(--hitam), 0 16px 40px rgba(60, 20, 10, 0.35);
+}
+.tentang-panel::before,
+.tentang-panel::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--emas);
+  border: 3px solid var(--hitam);
+  transform: rotate(45deg);
+}
+.tentang-panel::before { top: -14px; left: -14px; }
+.tentang-panel::after { right: -14px; bottom: -14px; }
+.tentang-panel h2 {
+  margin: 0 0 14px;
+  font-size: clamp(1.3rem, 3.4vw, 1.8rem);
+  letter-spacing: 0.08em;
+  color: var(--merah);
+}
+.tentang-panel h2::after {
+  content: '';
+  display: block;
+  height: 8px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--merah) 0 24%, transparent 24% 28%, var(--emas) 28% 40%, transparent 40%);
+  border-bottom: 2px solid var(--hitam);
+}
+.tentang-panel p { margin: 0 0 12px; line-height: 1.7; }
+.tentang-panel p:last-child { margin-bottom: 0; }
+
+.tentang-chip-daftar,
+.tentang-kontak { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tentang-chip {
+  padding: 5px 14px;
+  font-size: 0.92rem;
+  color: #fbefd0;
+  background: var(--merah);
+  border: 2px solid var(--hitam);
+  border-radius: 999px;
+}
+.tentang-kartu-daftar { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.tentang-kartu {
+  display: block;
+  padding: 14px 16px;
+  color: inherit;
+  text-decoration: none;
+  background: #fff6dc;
+  border: 2px solid var(--hitam);
+  box-shadow: 4px 4px 0 var(--merah);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.tentang-kartu:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--merah); }
+.tentang-kartu h3 { margin: 0 0 6px; color: var(--merah); }
+.tentang-kartu p { margin: 0; font-size: 0.93rem; line-height: 1.55; }
+.tentang-kontak a {
+  display: inline-block;
+  padding: 6px 18px;
+  color: var(--hitam);
+  text-decoration: none;
+  background: var(--emas);
+  border: 2px solid var(--hitam);
+  box-shadow: 3px 3px 0 var(--hitam);
+}
+.tentang-kontak a:hover { background: #f1c04d; }
+.tentang-catatan {
+  margin: 0 auto 48px;
+  padding: 0 16px;
+  max-width: 880px;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  color: #fbefd0;
+  text-shadow: 0 1px 0 #1a1310, 0 0 6px rgba(26, 19, 16, 0.8);
+}
+
+/* Panel muncul perlahan (hanya bila JavaScript aktif) */
+.tentang.siap-muncul [data-muncul] { opacity: 0; transform: translateY(26px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.tentang.siap-muncul [data-muncul].terlihat { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tentang-gulir { animation: none; }
+  .tentang.siap-muncul [data-muncul] { opacity: 1; transform: none; transition: none; }
+}
+@media (max-width: 600px) {
+  .tentang-latar::after { inset: 5px; border-width: 5px; }
+  .tentang-panel { width: calc(100% - 40px); margin-bottom: 84px; }
+}
