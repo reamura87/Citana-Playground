@@ -7,7 +7,7 @@ export const PROFIL = {
   foto: '/foto-profil.jpg',
   fotoAlt: 'Secret',
   tentang: [
-    'Aku mahasiswa Teknologi Informasi di Universitas Udayana, Bali. Aku suka membangun hal-hal kecil yang berguna dan indah, dari situs web, permainan, sampai asisten AI.',
+    'Saya adalah mahasiswa Teknologi Informasi di Universitas Udayana, Bali. Saya suka membangun hal-hal kecil yang berguna dan indah, dari situs web, permainan, sampai asisten AI.',
     'Citana Playground adalah ruang pribadiku: tempat menyimpan satua (cerita), karya seni rupa, diskusi, dan permainan. Aku ingin teknologi terasa dekat dengan budaya tempatku tumbuh.',
   ],
   keahlian: ['React dan Vite', 'JavaScript', 'Supabase dan PostgreSQL', 'WebGL dan Three.js', 'Phaser (game 2D)', 'Pixel art', 'Penulisan cerita'],
