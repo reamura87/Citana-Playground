@@ -5,11 +5,11 @@ const L = {
   badan: ['Hei, jangan iseng~', 'Hm? Kamu butuh sesuatu? Tanya aja langsung.', 'Colek-colek itu bukan cara bertanya, lho.'],
   rambut: ['Rambutku jangan ditarik-tarik!', 'Eh, baru kusisir tadi...', 'Hati-hati sama rambutku, dong!'],
   elus: ['Ehehe... enak juga.', 'Hmm~ nyaman...', 'Jangan berhenti... eh, maksudku, terserah kamu.'],
-  reda: ['...Hmph. Yaudah, dimaafkan. Tapi sekali ini aja!', 'Se-sebenarnya aku nggak marah banget kok...'],
+  reda: ['...Hmph. Yaudah, dimaafkan. Tapi sekali ini aja!', 'Se-sebenarnya aku nggak marah banget kok...', 'Aduuh, mau bagaimana lagi.'],
   kesal1: ['Eh... kok dicolek terus?', 'Mulai agak kesal, nih...'],
   kesal2: ['Sudah ya, jangan colek lagi.', 'Aku bisa marah beneran, lho.'],
   marah: ['SUDAH CUKUP! Jangan colek terus!!', 'AWAS YA!! Aku marah, nih!'],
-  ngambek: ['Hmph.', 'Aku masih marah!', 'Nggak mau ngomong sama kamu.', '...Elus kepalaku dulu kalau mau minta maaf.'],
+  ngambek: ['Hmph.', 'Aku masih marah!', 'Nggak mau ngomong sama kamu.', 'Bodoh!', '...Elus kepalaku dulu kalau mau minta maaf.'],
 }
 
 const PER_ZONA = {
