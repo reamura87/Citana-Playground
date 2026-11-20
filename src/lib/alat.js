@@ -15,4 +15,10 @@ export const DAFTAR_ALAT = [
     nama: 'Pas foto otomatis',
     info: 'Hapus latar, pilih ukuran dan warna, lalu unduh pas foto atau lembar cetak. Diproses di browsermu.',
   },
+
+    {
+    path: '/alat/musik',
+    nama: 'Membuat Musik Sendiri',
+    info: 'Membuat musik sendiri sesuai dengan idemu',
+  },
 ]

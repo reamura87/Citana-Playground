@@ -1,0 +1,123 @@
+/* ===== Pembuat Musik ===== */
+.musik {
+  --m-bg: var(--bg, #ffffff);
+  --m-fg: var(--fg, #15171c);
+  --m-muted: var(--muted, #6b7280);
+  --m-line: var(--line, #d6d8de);
+  --m-field: var(--field, #f2f3f6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  color: var(--m-fg);
+}
+.musik button,
+.musik select,
+.musik input[type='number'],
+.musik input[type='text'],
+.musik summary {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--m-fg);
+  background: var(--m-field);
+  border: 1px solid var(--m-line);
+  border-radius: 6px;
+}
+.musik button { padding: 5px 11px; cursor: pointer; }
+.musik button:hover:not(:disabled) { border-color: var(--m-fg); }
+.musik button:disabled { opacity: 0.4; cursor: default; }
+.musik button[aria-pressed='true'] { color: var(--m-bg); background: var(--m-fg); border-color: var(--m-fg); }
+.musik .musik-utama { min-width: 70px; font-weight: 700; color: var(--m-bg); background: var(--m-fg); border-color: var(--m-fg); }
+.musik select,
+.musik input[type='number'],
+.musik input[type='text'] { padding: 4px 8px; }
+.musik input[type='number'] { width: 64px; }
+.musik :focus-visible { outline: 2px solid var(--m-fg); outline-offset: 2px; }
+
+.musik-bilah { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.musik-kelompok { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.musik-kelompok label { display: flex; gap: 6px; align-items: center; font-size: 0.8rem; color: var(--m-muted); }
+.musik-kelompok input[type='range'] { width: 90px; }
+
+.musik-menu { position: relative; }
+.musik-menu summary { padding: 5px 11px; cursor: pointer; list-style: none; user-select: none; }
+.musik-menu summary::-webkit-details-marker { display: none; }
+.musik-menu[open] summary { border-color: var(--m-fg); }
+.musik-menu > div {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--m-bg);
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.musik-menu > div button { text-align: left; background: none; border-color: transparent; }
+.musik-menu > div button:hover { background: var(--m-field); }
+
+.musik-judul input { width: min(420px, 100%); font-size: 1rem; font-weight: 600; }
+
+.musik-badan { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; align-items: start; }
+
+.musik-trek ul { display: flex; flex-direction: column; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.musik-trek li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--m-field);
+  border: 1px solid var(--m-line);
+  border-left: 5px solid var(--warna);
+  border-radius: 8px;
+}
+.musik-trek li.aktif { border-color: var(--warna); box-shadow: 0 0 0 1px var(--warna); }
+.musik-trek-atas { display: flex; gap: 6px; align-items: center; }
+.musik-trek-atas input { flex: 1; min-width: 0; }
+.musik-trek .musik-chip { width: 22px; height: 22px; padding: 0; background: var(--warna); border: 2px solid var(--m-fg); border-radius: 4px; }
+.musik-trek .musik-chip[aria-pressed='true'] { background: var(--warna); border-color: var(--m-fg); box-shadow: 0 0 0 2px var(--m-bg), 0 0 0 4px var(--warna); }
+.musik-trek-bawah { display: flex; gap: 5px; align-items: center; }
+.musik-trek-bawah input[type='range'] { flex: 1; min-width: 0; }
+.musik-trek-bawah button { padding: 3px 8px; font-weight: 700; }
+.musik-trek .musik-tambah { width: 100%; }
+
+.musik-area { min-width: 0; }
+.musik-roll {
+  position: relative;
+  height: clamp(300px, 56vh, 560px);
+  overflow: auto;
+  background: var(--m-bg);
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+}
+.musik-roll-dalam { position: relative; display: grid; }
+.musik-roll-sudut { position: sticky; top: 0; left: 0; z-index: 5; background: var(--m-field); border-right: 1px solid var(--m-line); border-bottom: 1px solid var(--m-line); }
+.musik-roll-penggaris { position: sticky; top: 0; z-index: 4; display: block; cursor: pointer; }
+.musik-roll-tuts { position: sticky; left: 0; z-index: 3; display: block; cursor: pointer; border-right: 1px solid var(--m-line); }
+.musik-roll-grid { display: block; touch-action: none; user-select: none; }
+.musik-roll-grid.geser { touch-action: pan-x pan-y; cursor: grab; }
+.musik-roll-kepala {
+  position: absolute;
+  z-index: 2;
+  width: 2px;
+  background: #ff3b3b;
+  box-shadow: 0 0 6px rgba(255, 59, 59, 0.7);
+  pointer-events: none;
+  will-change: transform;
+}
+.musik-petunjuk { margin: 6px 2px 0; font-size: 0.75rem; color: var(--m-muted); }
+
+.musik-status { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8rem; color: var(--m-muted); }
+.musik-pesan { margin-left: auto; color: var(--m-fg); }
+
+@media (max-width: 760px) {
+  .musik-badan { grid-template-columns: minmax(0, 1fr); }
+  .musik-trek ul { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .musik-trek li { min-width: 200px; }
+  .musik-roll { height: 56vh; }
+}

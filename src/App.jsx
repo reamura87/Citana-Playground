@@ -30,6 +30,8 @@ const AsistenWidget = lazy(
   () => import('./asisten/AsistenWidget')
   );
 
+const PembuatMusik = lazy(() => import('./musik/PembuatMusik'))
+
 function App() {
   const [tema, setTema] = useState(
     () => document.documentElement.dataset.theme ?? 'light',
@@ -41,6 +43,8 @@ function App() {
   }, [tema])
 
     const { pathname } = useLocation()
+
+    
 
 
   return (
@@ -75,6 +79,7 @@ function App() {
           <Route path="/satua/:slug" element={<SatuaDetail />} />
           <Route path="/satua/:slug/episode/:nomor" element={<EpisodeDetail />} />
           <Route path="/tentang" element={<TentangPage />} />
+          <Route path="/alat/musik" element={<Suspense fallback={null}><PembuatMusik /></Suspense>} />
 
           <Route path="/tulis" element={<RuteMasuk><EditorTulisan /></RuteMasuk>} />
           <Route path="/tulis/saya" element={<RuteMasuk><TulisanSaya /></RuteMasuk>} />
