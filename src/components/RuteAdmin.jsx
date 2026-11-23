@@ -13,6 +13,6 @@ export default function RuteAdmin({ children }) {
 function CekPeran({ userId, children }) {
   const { data: profil, memuat } = useAmbil(() => ambilProfilSaya(userId), [userId])
   if (memuat) return <p className="redup">Memuat…</p>
-  if (profil?.peran !== 'admin') return <p>Halaman ini hanya untuk admin.</p>
+  if (profil?.peran !== 'admin') return <p>Halaman ini hanya untuk admin. Untuk Reamura saja</p>
   return children
 }
