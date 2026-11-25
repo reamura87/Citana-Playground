@@ -51,7 +51,7 @@ export const DIALOG = {
   guru: {
     nama: 'Guru Elara',
     wajah: 'guru',
-    buka: ['Selamat datang, {nama}. Aku Elara, penjaga jalan para petualang.'],
+    buka: ['Selamat datang, {nama}. Nama saya Guru Elara, penjaga jalan para petualang.'],
     tanya: 'Apa yang ingin kamu tanyakan?',
     pilihan: [
       { teks: 'Pelajari skill', aksi: ['layar', 'skill'] },
